@@ -12,7 +12,7 @@ on:
   pull_request:
   merge_group:
   push:
-    branches: [main, staging, trying]
+    branches: [main, staging, trying, develop]
 
 name: CI
 

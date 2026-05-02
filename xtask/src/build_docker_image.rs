@@ -191,7 +191,7 @@ pub fn build_docker_image(
         docker_build.current_dir(&docker_root);
 
         let docker_platform = platform.docker_platform();
-        let mut dockerfile = dockerfile.clone();
+        let dockerfile = dockerfile.clone();
         docker_build.args(["--platform", &docker_platform]);
         let uppercase_triple = target.name.to_ascii_uppercase().replace('-', "_");
         docker_build.args([
@@ -199,19 +199,20 @@ pub fn build_docker_image(
             &format!("CROSS_TARGET_TRIPLE={}", uppercase_triple),
         ]);
         // add our platform, and determine if we need to use a native docker image
-        if has_native_image(docker_platform.as_str(), target, msg_info)? {
-            let dockerfile_name = match target.sub.as_deref() {
-                Some(sub) => format!("Dockerfile.native.{sub}"),
-                None => "Dockerfile.native".to_owned(),
-            };
-            let dockerfile_path = docker_root.join(&dockerfile_name);
-            if !dockerfile_path.exists() {
-                eyre::bail!(
-                    "unable to find native dockerfile named {dockerfile_name} for target {target}."
-                );
-            }
-            dockerfile = dockerfile_path.to_utf8()?.to_string();
-        }
+        // TODO: Reenable again for native support
+        // if has_native_image(docker_platform.as_str(), target, msg_info)? {
+        //     let dockerfile_name = match target.sub.as_deref() {
+        //         Some(sub) => format!("Dockerfile.native.{sub}"),
+        //         None => "Dockerfile.native".to_owned(),
+        //     };
+        //     let dockerfile_path = docker_root.join(&dockerfile_name);
+        //     if !dockerfile_path.exists() {
+        //         eyre::bail!(
+        //             "unable to find native dockerfile named {dockerfile_name} for target {target}."
+        //         );
+        //     }
+        //     dockerfile = dockerfile_path.to_utf8()?.to_string();
+        // }
 
         if push {
             docker_build.arg("--push");
@@ -351,6 +352,7 @@ pub fn build_docker_image(
     Ok(())
 }
 
+#[expect(unused)]
 fn has_native_image(
     platform: &str,
     target: &ImageTarget,

@@ -14,6 +14,7 @@ build_static_libcap
 build_static_libmount
 build_static_pixman
 build_static_slirp
+buildkit_warning
 Buildx
 clippy
 cpio
@@ -26,15 +27,21 @@ debsource
 DESTDIR
 devpts
 devtmpfs
+distros
 drivernet
 dropbear
 elif
+endgroup
+errorred
 esac
 exitcode
 fscache
 fsdev
+gnueabi
+has_buildkit
 hostfwd
 insmod
+is_armv6
 kversion
 kversions
 lastlog
@@ -63,6 +70,7 @@ n
 netdev
 netfs
 newc
+no_fastfail
 nocheckvalid
 nodefaults
 nographic
