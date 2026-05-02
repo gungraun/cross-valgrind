@@ -4,116 +4,14 @@
 # spec is available in `xtask/src/util.rs` on `CiTarget`
 
 [[target]]
-target = "x86_64-apple-darwin"
-os = "macos-13"
-special = true
-deploy = true
-
-[[target]]
 target = "x86_64-unknown-linux-gnu"
 os = "ubuntu-latest"
 cpp = true
 dylib = true
 std = true
 run = true
-runners = "native qemu-user qemu-system"
+runners = "native qemu-system"
 deploy = true
-
-[[target]]
-target = "x86_64-unknown-linux-musl"
-os = "ubuntu-latest"
-cpp = true
-dylib = true
-std = true
-run = true
-runners = "native qemu-user"
-deploy = true
-
-[[target]]
-target = "x86_64-pc-windows-msvc"
-os = "windows-2019"
-special = true
-deploy = true
-
-[[target]]
-target = "x86_64-unknown-linux-gnu"
-sub = "centos"
-os = "ubuntu-latest"
-cpp = true
-dylib = true
-std = true
-run = true
-runners = "native qemu-user qemu-system"
-
-[[target]]
-target = "aarch64-unknown-linux-gnu"
-os = "ubuntu-latest"
-cpp = true
-dylib = true
-std = true
-run = true
-runners = "qemu-user qemu-system"
-
-[[target]]
-target = "aarch64_be-unknown-linux-gnu"
-os = "ubuntu-latest"
-cpp = true
-dylib = true
-std = true
-run = true
-runners = "qemu-user"
-build-std = true
-
-[[target]]
-target = "arm-unknown-linux-gnueabi"
-os = "ubuntu-latest"
-cpp = true
-dylib = true
-std = true
-run = true
-
-[[target]]
-target = "arm-unknown-linux-gnueabihf"
-os = "ubuntu-latest"
-cpp = true
-dylib = true
-std = true
-run = true
-
-[[target]]
-target = "armv7-unknown-linux-gnueabi"
-os = "ubuntu-latest"
-cpp = true
-dylib = true
-std = true
-run = true
-runners = "qemu-user"
-
-[[target]]
-target = "armv7-unknown-linux-gnueabihf"
-os = "ubuntu-latest"
-cpp = true
-dylib = true
-std = true
-run = true
-runners = "qemu-user qemu-system"
-
-[[target]]
-target = "thumbv7neon-unknown-linux-gnueabihf"
-os = "ubuntu-latest"
-cpp = true
-dylib = true
-std = true
-run = true
-runners = "qemu-user qemu-system"
-
-[[target]]
-target = "i586-unknown-linux-gnu"
-os = "ubuntu-latest"
-cpp = true
-dylib = true
-std = true
-run = true
 
 [[target]]
 target = "i686-unknown-linux-gnu"
@@ -122,35 +20,26 @@ cpp = true
 dylib = true
 std = true
 run = true
-runners = "native qemu-user qemu-system"
+runners = "native qemu-system"
+deploy = true
 
 [[target]]
-target = "loongarch64-unknown-linux-gnu"
+target = "aarch64-unknown-linux-gnu"
 os = "ubuntu-latest"
 cpp = true
 dylib = true
 std = true
 run = true
-runners = "qemu-user"
+runners = "qemu-system"
 
 [[target]]
-target = "loongarch64-unknown-linux-musl"
+target = "armv7-unknown-linux-gnueabihf"
 os = "ubuntu-latest"
 cpp = true
 dylib = true
 std = true
 run = true
-runners = "qemu-user"
-
-[[target]]
-target = "mips-unknown-linux-gnu"
-os = "ubuntu-latest"
-cpp = true
-dylib = true
-std = true
-run = true
-runners = "qemu-user"
-build-std = true
+runners = "qemu-system"
 
 [[target]]
 target = "mipsel-unknown-linux-gnu"
@@ -159,16 +48,7 @@ cpp = true
 dylib = true
 std = true
 run = true
-runners = "qemu-user qemu-system"
-build-std = true
-
-[[target]]
-target = "mips64-unknown-linux-gnuabi64"
-os = "ubuntu-latest"
-cpp = true
-dylib = true
-std = true
-run = true
+runners = "qemu-system"
 build-std = true
 
 [[target]]
@@ -178,27 +58,7 @@ cpp = true
 dylib = true
 std = true
 run = true
-runners = "qemu-user qemu-system"
-build-std = true
-
-[[target]]
-disabled = true # https://github.com/cross-rs/cross/issues/1422
-target = "mips64-unknown-linux-muslabi64"
-os = "ubuntu-latest"
-cpp = true
-dylib = true
-std = true
-run = true
-build-std = true
-
-[[target]]
-disabled = true # https://github.com/cross-rs/cross/issues/1422
-target = "mips64el-unknown-linux-muslabi64"
-os = "ubuntu-latest"
-# FIXME: Lacking partial C++ support due to missing compiler builtins.
-cpp = true
-std = true
-run = true
+runners = "qemu-system"
 build-std = true
 
 [[target]]
@@ -208,7 +68,7 @@ cpp = true
 dylib = true
 std = true
 run = true
-runners = "qemu-user qemu-system"
+runners = "qemu-system"
 
 [[target]]
 target = "powerpc64-unknown-linux-gnu"
@@ -217,7 +77,7 @@ cpp = true
 dylib = true
 std = true
 run = true
-runners = "qemu-user qemu-system"
+runners = "qemu-system"
 
 [[target]]
 target = "powerpc64le-unknown-linux-gnu"
@@ -226,7 +86,7 @@ cpp = true
 dylib = true
 std = true
 run = true
-runners = "qemu-user qemu-system"
+runners = "qemu-system"
 
 [[target]]
 target = "riscv64gc-unknown-linux-gnu"
@@ -235,16 +95,7 @@ cpp = true
 dylib = true
 std = true
 run = true
-runners = "qemu-user qemu-system"
-
-[[target]]
-target = "riscv64gc-unknown-linux-musl"
-os = "ubuntu-latest"
-cpp = true
-dylib = true
-std = true
-run = true
-runners = "qemu-user"
+runners = "qemu-system"
 
 [[target]]
 target = "s390x-unknown-linux-gnu"
@@ -253,306 +104,9 @@ cpp = true
 dylib = true
 std = true
 run = true
-runners = "qemu-user qemu-system"
-
-[[target]]
-target = "sparc64-unknown-linux-gnu"
-os = "ubuntu-latest"
-cpp = true
-dylib = true
-std = true
-run = true
-runners = "qemu-user qemu-system"
-
-[[target]]
-target = "aarch64-unknown-linux-musl"
-os = "ubuntu-latest"
-cpp = true
-dylib = true
-std = true
-run = true
-
-[[target]]
-target = "arm-unknown-linux-musleabihf"
-os = "ubuntu-latest"
-cpp = true
-dylib = true
-std = true
-run = true
-
-[[target]]
-target = "arm-unknown-linux-musleabi"
-os = "ubuntu-latest"
-cpp = true
-dylib = true
-std = true
-run = true
-
-[[target]]
-target = "armv5te-unknown-linux-gnueabi"
-os = "ubuntu-latest"
-cpp = true
-dylib = true
-std = true
-run = true
-
-[[target]]
-target = "armv5te-unknown-linux-musleabi"
-os = "ubuntu-latest"
-cpp = true
-dylib = true
-std = true
-run = true
-
-[[target]]
-target = "armv7-unknown-linux-musleabi"
-os = "ubuntu-latest"
-cpp = true
-dylib = true
-std = true
-run = true
-
-[[target]]
-target = "armv7-unknown-linux-musleabihf"
-os = "ubuntu-latest"
-cpp = true
-dylib = true
-std = true
-run = true
-
-[[target]]
-target = "i586-unknown-linux-musl"
-os = "ubuntu-latest"
-cpp = true
-dylib = true
-std = true
-run = true
-# FIXME: These could run without qemu in our tests (`native`), but it fails today
-runners = "qemu-user"
-
-[[target]]
-target = "i686-unknown-linux-musl"
-os = "ubuntu-latest"
-cpp = true
-dylib = true
-std = true
-run = true
-# FIXME: These could run without qemu in our tests (`native`), but it fails today
-runners = "qemu-user"
-
-[[target]]
-disabled = true # https://github.com/cross-rs/cross/issues/1422
-target = "mips-unknown-linux-musl"
-os = "ubuntu-latest"
-cpp = true
-dylib = true
-std = true
-run = true
-build-std = true
-
-[[target]]
-disabled = true # https://github.com/cross-rs/cross/issues/1422
-target = "mipsel-unknown-linux-musl"
-os = "ubuntu-latest"
-cpp = true
-dylib = true
-std = true
-run = true
-build-std = true
-
-[[target]]
-target = "aarch64-linux-android"
-os = "ubuntu-latest"
-cpp = true
-dylib = true
-std = true
-run = true
-
-[[target]]
-target = "arm-linux-androideabi"
-os = "ubuntu-latest"
-cpp = true
-dylib = true
-std = true
-run = true
-
-[[target]]
-target = "armv7-linux-androideabi"
-os = "ubuntu-latest"
-cpp = true
-dylib = true
-std = true
-run = true
-
-[[target]]
-target = "thumbv7neon-linux-androideabi"
-os = "ubuntu-latest"
-cpp = true
-std = true
-run = true
-
-[[target]]
-target = "i686-linux-android"
-os = "ubuntu-latest"
-cpp = true
-dylib = true
-std = true
-run = true
-
-[[target]]
-target = "x86_64-linux-android"
-os = "ubuntu-latest"
-cpp = true
-dylib = true
-std = true
-run = true
-
-[[target]]
-target = "x86_64-pc-windows-gnu"
-os = "ubuntu-latest"
-cpp = true
-std = true
-run = true
-
-[[target]]
-target = "i686-pc-windows-gnu"
-os = "ubuntu-latest"
-cpp = true
-std = true
-run = true
-
-[[target]]
-# Disabled for now, see https://github.com/rust-lang/rust/issues/98216 & https://github.com/cross-rs/cross/issues/634
-disabled = true
-target = "asmjs-unknown-emscripten"
-os = "ubuntu-latest"
-cpp = true
-std = true
-run = true
-
-[[target]]
-target = "wasm32-unknown-emscripten"
-os = "ubuntu-latest"
-cpp = true
-std = true
-run = true
-
-[[target]]
-target = "x86_64-unknown-dragonfly"
-os = "ubuntu-latest"
-cpp = true
-dylib = true
-std = true
-build-std = true
-
-[[target]]
-target = "i686-unknown-freebsd"
-os = "ubuntu-latest"
-cpp = true
-dylib = true
-std = true
-
-[[target]]
-target = "x86_64-unknown-freebsd"
-os = "ubuntu-latest"
-cpp = true
-dylib = true
-std = true
-
-[[target]]
-target = "aarch64-unknown-freebsd"
-os = "ubuntu-latest"
-cpp = true
-dylib = true
-std = true
-build-std = true
-
-[[target]]
-target = "x86_64-unknown-netbsd"
-os = "ubuntu-latest"
-cpp = true
-dylib = true
-std = true
-
-[[target]]
-target = "sparcv9-sun-solaris"
-os = "ubuntu-latest"
-cpp = true
-dylib = true
-std = true
-
-[[target]]
-target = "x86_64-pc-solaris"
-os = "ubuntu-latest"
-cpp = true
-dylib = true
-std = true
-
-[[target]]
-target = "x86_64-unknown-illumos"
-os = "ubuntu-latest"
-cpp = true
-dylib = true
-std = true
-
-[[target]]
-target = "thumbv6m-none-eabi"
-os = "ubuntu-latest"
-cpp = true
-std = false
-
-[[target]]
-target = "thumbv7em-none-eabi"
-os = "ubuntu-latest"
-cpp = true
-std = false
-
-[[target]]
-target = "thumbv7em-none-eabihf"
-os = "ubuntu-latest"
-cpp = true
-std = false
-
-[[target]]
-target = "thumbv7m-none-eabi"
-os = "ubuntu-latest"
-cpp = true
-std = false
-
-[[target]]
-target = "thumbv8m.base-none-eabi"
-os = "ubuntu-latest"
-cpp = true
-std = false
-
-[[target]]
-target = "thumbv8m.main-none-eabi"
-os = "ubuntu-latest"
-cpp = true
-std = false
-
-[[target]]
-target = "thumbv8m.main-none-eabihf"
-os = "ubuntu-latest"
-cpp = true
-std = false
+runners = "qemu-system"
 
 [[target]]
 target = "cross"
 os = "ubuntu-latest"
 special = true
-
-[[target]]
-target = "zig"
-os = "ubuntu-latest"
-special = true
-
-[[target]]
-target = "aarch64-unknown-linux-gnu"
-sub = "centos"
-os = "ubuntu-latest"
-cpp = true
-dylib = true
-std = true
-run = true
-runners = "qemu-user qemu-system"
