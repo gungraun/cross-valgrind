@@ -2,6 +2,7 @@
 
 set -euxo pipefail
 
+# shellcheck disable=SC1091
 . lib.sh
 
 export CC="${CROSS_TOOLCHAIN_PREFIX}gcc"
