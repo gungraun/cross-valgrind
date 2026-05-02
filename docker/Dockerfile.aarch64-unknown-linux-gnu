@@ -34,11 +34,11 @@ COPY toolchain.cmake /opt/toolchain.cmake
 ENV CROSS_TOOLCHAIN_PREFIX=aarch64-linux-gnu-
 ENV CROSS_SYSROOT=/usr/aarch64-linux-gnu
 ENV CROSS_TARGET_RUNNER="/linux-runner aarch64"
-ENV CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER="$CROSS_TOOLCHAIN_PREFIX"gcc \
+ENV CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER="${CROSS_TOOLCHAIN_PREFIX}gcc" \
     CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_RUNNER="$CROSS_TARGET_RUNNER" \
-    AR_aarch64_unknown_linux_gnu="$CROSS_TOOLCHAIN_PREFIX"ar \
-    CC_aarch64_unknown_linux_gnu="$CROSS_TOOLCHAIN_PREFIX"gcc \
-    CXX_aarch64_unknown_linux_gnu="$CROSS_TOOLCHAIN_PREFIX"g++ \
+    AR_aarch64_unknown_linux_gnu="${CROSS_TOOLCHAIN_PREFIX}ar" \
+    CC_aarch64_unknown_linux_gnu="${CROSS_TOOLCHAIN_PREFIX}gcc" \
+    CXX_aarch64_unknown_linux_gnu="${CROSS_TOOLCHAIN_PREFIX}g++" \
     CMAKE_TOOLCHAIN_FILE_aarch64_unknown_linux_gnu=/opt/toolchain.cmake \
     BINDGEN_EXTRA_CLANG_ARGS_aarch64_unknown_linux_gnu="--sysroot=$CROSS_SYSROOT -idirafter/usr/include" \
     QEMU_LD_PREFIX="$CROSS_SYSROOT" \

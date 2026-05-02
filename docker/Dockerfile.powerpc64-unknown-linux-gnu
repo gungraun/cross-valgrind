@@ -34,11 +34,11 @@ COPY toolchain.cmake /opt/toolchain.cmake
 ENV CROSS_TOOLCHAIN_PREFIX=powerpc64-linux-gnu-
 ENV CROSS_SYSROOT=/usr/powerpc64-linux-gnu
 ENV CROSS_TARGET_RUNNER="/linux-runner powerpc64"
-ENV CARGO_TARGET_POWERPC64_UNKNOWN_LINUX_GNU_LINKER="$CROSS_TOOLCHAIN_PREFIX"gcc \
+ENV CARGO_TARGET_POWERPC64_UNKNOWN_LINUX_GNU_LINKER="${CROSS_TOOLCHAIN_PREFIX}gcc" \
     CARGO_TARGET_POWERPC64_UNKNOWN_LINUX_GNU_RUNNER="$CROSS_TARGET_RUNNER" \
-    AR_powerpc64_unknown_linux_gnu="$CROSS_TOOLCHAIN_PREFIX"ar \
-    CC_powerpc64_unknown_linux_gnu="$CROSS_TOOLCHAIN_PREFIX"gcc \
-    CXX_powerpc64_unknown_linux_gnu="$CROSS_TOOLCHAIN_PREFIX"g++ \
+    AR_powerpc64_unknown_linux_gnu="${CROSS_TOOLCHAIN_PREFIX}ar" \
+    CC_powerpc64_unknown_linux_gnu="${CROSS_TOOLCHAIN_PREFIX}gcc" \
+    CXX_powerpc64_unknown_linux_gnu="${CROSS_TOOLCHAIN_PREFIX}g++" \
     CMAKE_TOOLCHAIN_FILE_powerpc64_unknown_linux_gnu=/opt/toolchain.cmake \
     BINDGEN_EXTRA_CLANG_ARGS_powerpc64_unknown_linux_gnu="--sysroot=$CROSS_SYSROOT -idirafter/usr/include" \
     QEMU_LD_PREFIX="$CROSS_SYSROOT" \
