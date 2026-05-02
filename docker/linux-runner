@@ -30,20 +30,20 @@ export QEMU_LD_PREFIX=${QEMU_LD_PREFIX:-@DEFAULT_QEMU_LD_PREFIX@}
 
 qarch=$(qemu_arch "${arch}")
 case "${CROSS_RUNNER}" in
-    native)
-        exec "${@}"
-        ;;
-    qemu-user)
-        exec "qemu-${qarch}" "${@}"
-        ;;
-    qemu-system)
-        true
-        ;;
-    *)
-        echo "Invalid runner: \"${CROSS_RUNNER}\"";
-        echo "Valid runners are: native, qemu-user and qemu-system"
-        exit 1
-        ;;
+native)
+    exec "${@}"
+    ;;
+qemu-user)
+    exec "qemu-${qarch}" "${@}"
+    ;;
+qemu-system)
+    true
+    ;;
+*)
+    echo "Invalid runner: \"${CROSS_RUNNER}\""
+    echo "Valid runners are: native, qemu-user and qemu-system"
+    exit 1
+    ;;
 esac
 
 n="$(nproc)"
@@ -53,54 +53,54 @@ drivernet="virtio-net-pci"
 
 # select qemu parameters
 case "${arch}" in
-    aarch64|aarch64_be)
-        # 8 is the max number of cpu supported by qemu-aarch64
-        n=$(( n > 8 ? 8 : n ))
-        opt="-machine virt -cpu cortex-a57"
-        ;;
-    armv7hf)
-        opt="-machine virt"
-        driver9p="virtio-9p-device"
-        drivernet="virtio-net-device"
-        ;;
-    i686)
-        opt="-append console=ttyS0"
-        ;;
-    mips|mipsel)
-        # avoid kernel error
-        # https://blahcat.github.io/2017/07/14/building-a-debian-stretch-qemu-image-for-mipsel/
-        opt="-append nokaslr"
-        n=1
-        ;;
-    mips64el)
-        # avoid kernel error
-        # https://blahcat.github.io/2017/07/14/building-a-debian-stretch-qemu-image-for-mipsel/
-        opt="-append nokaslr -cpu MIPS64R2-generic"
-        n=1
-        ;;
-    powerpc)
-        opt="-append console=ttyPZ0"
-        n=1
-        ;;
-    riscv64)
-        opt="-machine virt"
-        ;;
-    powerpc64|powerpc64le)
-        opt="-append console=hvc0 --nodefaults -serial stdio"
-        ;;
-    s390x)
-        n=1
-        driver9p="virtio-9p-ccw"
-        drivernet="virtio-net-ccw"
-        ;;
-    sparc64)
-        n=1
-        driver9p+=",bus=pciB"
-        drivernet+=",bus=pciB"
-        ;;
-    x86_64)
-        opt="-append console=ttyS0"
-        ;;
+aarch64 | aarch64_be)
+    # 8 is the max number of cpu supported by qemu-aarch64
+    n=$((n > 8 ? 8 : n))
+    opt="-machine virt -cpu cortex-a57"
+    ;;
+armv7hf)
+    opt="-machine virt"
+    driver9p="virtio-9p-device"
+    drivernet="virtio-net-device"
+    ;;
+i686)
+    opt="-append console=ttyS0"
+    ;;
+mips | mipsel)
+    # avoid kernel error
+    # https://blahcat.github.io/2017/07/14/building-a-debian-stretch-qemu-image-for-mipsel/
+    opt="-append nokaslr"
+    n=1
+    ;;
+mips64el)
+    # avoid kernel error
+    # https://blahcat.github.io/2017/07/14/building-a-debian-stretch-qemu-image-for-mipsel/
+    opt="-append nokaslr -cpu MIPS64R2-generic"
+    n=1
+    ;;
+powerpc)
+    opt="-append console=ttyPZ0"
+    n=1
+    ;;
+riscv64)
+    opt="-machine virt"
+    ;;
+powerpc64 | powerpc64le)
+    opt="-append console=hvc0 --nodefaults -serial stdio"
+    ;;
+s390x)
+    n=1
+    driver9p="virtio-9p-ccw"
+    drivernet="virtio-net-ccw"
+    ;;
+sparc64)
+    n=1
+    driver9p+=",bus=pciB"
+    drivernet+=",bus=pciB"
+    ;;
+x86_64)
+    opt="-append console=ttyS0"
+    ;;
 esac
 
 (
@@ -125,7 +125,7 @@ esac
     if [[ -n "${CROSS_DEBUG}" ]]; then
         (${QEMU_CMD} 2>&1 | tee -a "${LOG}") &
     else
-        ${QEMU_CMD} >> "${LOG}" 2>&1 &
+        ${QEMU_CMD} >>"${LOG}" 2>&1 &
     fi
     qemu_pid=$!
 
@@ -158,7 +158,7 @@ esac
 ) 200>"${LOCK}"
 
 if [[ -t 1 ]] && [[ -t 2 ]]; then
-  tty_flag='-t'
+    tty_flag='-t'
 fi
 
 exec dbclient ${tty_flag} -p 10022 -y -y root@localhost "${@}"

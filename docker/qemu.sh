@@ -6,14 +6,13 @@ set -euo pipefail
 # shellcheck disable=SC1091
 . lib.sh
 
-build_static_libffi () {
+build_static_libffi() {
     local version=3.0.13
 
     local td
     td="$(mktemp -d)"
 
     pushd "${td}"
-
 
     curl --retry 3 -sSfL "https://github.com/libffi/libffi/archive/refs/tags/v${version}.tar.gz" -O -L
     tar --strip-components=1 -xzf "v${version}.tar.gz"
@@ -26,7 +25,7 @@ build_static_libffi () {
     rm -rf "${td}"
 }
 
-build_static_libmount () {
+build_static_libmount() {
     local version_spec=2.23.2
     local version=2.23
 
@@ -48,7 +47,6 @@ build_static_libmount () {
 
     rm -rf "${td}"
 }
-
 
 build_static_libattr() {
     local version=2.4.46
@@ -150,7 +148,7 @@ main() {
         libtool \
         make \
         patch \
-        python3 \
+        python3
 
     if_centos install_packages \
         gcc-c++ \
@@ -231,21 +229,21 @@ main() {
     local targets="${arch}-linux-user"
     local virtfs=""
     case "${softmmu}" in
-        softmmu)
-            if [ "${arch}" = "ppc64le" ]; then
-                targets="${targets},ppc64-softmmu"
-            else
-                targets="${targets},${arch}-softmmu"
-            fi
-            virtfs="--enable-virtfs"
-            ;;
-        "")
-            true
-            ;;
-        *)
-            echo "Invalid softmmu option: ${softmmu}"
-            exit 1
-            ;;
+    softmmu)
+        if [ "${arch}" = "ppc64le" ]; then
+            targets="${targets},ppc64-softmmu"
+        else
+            targets="${targets},${arch}-softmmu"
+        fi
+        virtfs="--enable-virtfs"
+        ;;
+    "")
+        true
+        ;;
+    *)
+        echo "Invalid softmmu option: ${softmmu}"
+        exit 1
+        ;;
     esac
 
     ./configure \

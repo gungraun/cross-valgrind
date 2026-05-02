@@ -14,6 +14,10 @@ trim_trailing_whitespace = true
 indent_style = space
 indent_size = 4
 
+[docker/{linux-runner,native-linux-runner}]
+indent_style = space
+indent_size = 4
+
 [*.yml]
 indent_style = space
 indent_size = 2

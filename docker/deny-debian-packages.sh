@@ -8,7 +8,7 @@ deny_package() {
     local filename="${2}"
     echo "Package: ${package}:${TARGET_ARCH}
 Pin: release *
-Pin-Priority: -1" > "/etc/apt/preferences.d/${filename}"
+Pin-Priority: -1" >"/etc/apt/preferences.d/${filename}"
 }
 
 main() {
