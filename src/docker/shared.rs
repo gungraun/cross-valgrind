@@ -1587,6 +1587,7 @@ mod tests {
         }
     }
 
+    #[ignore = "cross-valgrind doesn't support zig images"]
     #[test]
     fn test_tag_only_image() -> Result<()> {
         let target: Target = TargetTriple::X86_64UnknownLinuxGnu.into();

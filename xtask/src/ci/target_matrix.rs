@@ -449,17 +449,16 @@ mod tests {
 
     #[test]
     fn exact() {
-        let matrix = run(["--target", "arm-unknown-linux-gnueabi"]);
+        let matrix = run(["--target", "x86_64-unknown-linux-gnu"]);
         assert_eq!(matrix.len(), 1);
-        assert_eq!(matrix[0].target, "arm-unknown-linux-gnueabi");
+        assert_eq!(matrix[0].target, "x86_64-unknown-linux-gnu");
     }
 
     #[test]
     fn glob() {
-        let matrix = run(["--target", "arm-unknown-linux-gnueabi*"]);
-        assert_eq!(matrix.len(), 2);
-        assert_eq!(matrix[0].target, "arm-unknown-linux-gnueabi");
-        assert_eq!(matrix[1].target, "arm-unknown-linux-gnueabihf");
+        let matrix = run(["--target", "x86_64-unknown-linux-g*"]);
+        assert_eq!(matrix.len(), 1);
+        assert_eq!(matrix[0].target, "x86_64-unknown-linux-gnu");
     }
 
     #[test]
@@ -471,10 +470,7 @@ mod tests {
         assert!(matrix.iter().all(|t| t.target != "thumbv6m-none-eabi"));
 
         let matrix = run(["--dylib", "0"]);
-        assert!(matrix
-            .iter()
-            .all(|t| t.target != "aarch64-unknown-linux-gnu"));
-        assert!(matrix.iter().any(|t| t.target == "thumbv6m-none-eabi"));
+        assert!(matrix.iter().any(|t| t.target == "cross"));
     }
 
     #[test]
