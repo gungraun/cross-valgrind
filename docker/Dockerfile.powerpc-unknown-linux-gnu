@@ -1,5 +1,10 @@
 FROM ubuntu:20.04 AS cross-base
 ENV DEBIAN_FRONTEND=noninteractive
+ARG CROSS_TARGET=powerpc-unknown-linux-gnu
+ARG VALGRIND_VERSION=3.27.0
+ARG VALGRIND_CONFIGURE_ARGS="--prefix=/usr --enable-tls --enable-lto --enable-only32bit"
+ARG VALGRIND_CONFIGURE_EXTRA_ARGS=""
+ARG VALGRIND_MAKE_EXTRA_ARGS=""
 
 COPY common.sh lib.sh /
 RUN /common.sh
@@ -8,6 +13,9 @@ COPY cmake.sh /
 RUN /cmake.sh
 
 FROM cross-base AS build
+
+ENV CROSS_TOOLCHAIN_PREFIX=powerpc-linux-gnu-
+ENV CROSS_SYSROOT=/usr/powerpc-linux-gnu
 
 RUN apt-get update && apt-get install --assume-yes --no-install-recommends \
     g++-powerpc-linux-gnu \
@@ -25,14 +33,15 @@ RUN /qemu.sh ppc softmmu
 COPY dropbear.sh /
 RUN /dropbear.sh
 
+COPY build-valgrind.sh /
+RUN /build-valgrind.sh
+
 COPY linux-image.sh /
 RUN /linux-image.sh powerpc
 
 COPY linux-runner base-runner.sh /
 COPY toolchain.cmake /opt/toolchain.cmake
 
-ENV CROSS_TOOLCHAIN_PREFIX=powerpc-linux-gnu-
-ENV CROSS_SYSROOT=/usr/powerpc-linux-gnu
 ENV CROSS_TARGET_RUNNER="/linux-runner powerpc"
 ENV CARGO_TARGET_POWERPC_UNKNOWN_LINUX_GNU_LINKER="${CROSS_TOOLCHAIN_PREFIX}gcc" \
     CARGO_TARGET_POWERPC_UNKNOWN_LINUX_GNU_RUNNER="$CROSS_TARGET_RUNNER" \

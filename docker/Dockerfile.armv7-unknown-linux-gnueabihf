@@ -1,5 +1,10 @@
 FROM ubuntu:20.04 AS cross-base
 ENV DEBIAN_FRONTEND=noninteractive
+ARG CROSS_TARGET=armv7-unknown-linux-gnueabihf
+ARG VALGRIND_VERSION=3.27.0
+ARG VALGRIND_CONFIGURE_ARGS="--prefix=/usr --enable-tls --enable-lto --enable-only32bit"
+ARG VALGRIND_CONFIGURE_EXTRA_ARGS=""
+ARG VALGRIND_MAKE_EXTRA_ARGS=""
 
 COPY common.sh lib.sh /
 RUN /common.sh
@@ -8,6 +13,9 @@ COPY cmake.sh /
 RUN /cmake.sh
 
 FROM cross-base AS build
+
+ENV CROSS_TOOLCHAIN_PREFIX=arm-linux-gnueabihf-
+ENV CROSS_SYSROOT=/usr/arm-linux-gnueabihf
 
 RUN apt-get update && apt-get install --assume-yes --no-install-recommends \
     g++-arm-linux-gnueabihf \
@@ -25,14 +33,15 @@ RUN /qemu.sh arm softmmu
 COPY dropbear.sh /
 RUN /dropbear.sh
 
+COPY build-valgrind.sh /
+RUN /build-valgrind.sh
+
 COPY linux-image.sh /
 RUN /linux-image.sh armv7
 
 COPY linux-runner base-runner.sh /
 COPY toolchain.cmake /opt/toolchain.cmake
 
-ENV CROSS_TOOLCHAIN_PREFIX=arm-linux-gnueabihf-
-ENV CROSS_SYSROOT=/usr/arm-linux-gnueabihf
 ENV CROSS_TARGET_RUNNER="/linux-runner armv7hf"
 ENV CARGO_TARGET_ARMV7_UNKNOWN_LINUX_GNUEABIHF_LINKER="${CROSS_TOOLCHAIN_PREFIX}gcc" \
     CARGO_TARGET_ARMV7_UNKNOWN_LINUX_GNUEABIHF_RUNNER="$CROSS_TARGET_RUNNER" \
