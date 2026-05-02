@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 set -x
-set -euo pipefail
+set -eo pipefail
 
 # shellcheck disable=SC1091
 . lib.sh
@@ -57,7 +57,7 @@ max_kernel_version() {
 main() {
     # arch in the rust target
     local arch="${1}" \
-        kversion=5.10.0-34
+        kversion='5.10.0-39'
 
     local debsource="deb http://http.debian.net/debian/ bullseye main"
     debsource="${debsource}\ndeb http://security.debian.org/ bullseye-security main"
@@ -68,6 +68,7 @@ main() {
     local kernel=
     local libgcc="libgcc-s1"
     local ncurses=
+    local snapshot=
 
     # select debian arch and kernel version
     case "${arch}" in
@@ -142,8 +143,16 @@ main() {
         ;;
     s390x)
         arch=s390x
+        snapshot=20250501T000412Z
+        debsource="deb [check-valid-until=no] https://snapshot.debian.org/archive/debian/${snapshot} bullseye main"
+        debsource="${debsource}\ndeb [check-valid-until=no] https://snapshot.debian.org/archive/debian-security/${snapshot} bullseye-security main"
         kernel='5.*-s390x'
         deps=(libcrypt1:"${arch}")
+        ncurses="=6.2*"
+
+        echo "Acquire::Check-Valid-Until false;" | tee -a /etc/apt/apt.conf.d/10-nocheckvalid
+        echo "APT::Get::AllowUnauthenticated true;" | tee -a /etc/apt/apt.conf.d/10-nocheckvalid
+        echo "Acquire::AllowInsecureRepositories True;" | tee -a /etc/apt/apt.conf.d/10-nocheckvalid
         ;;
     sparc64)
         # there is no stable port
@@ -197,11 +206,15 @@ main() {
     fi
     dpkg --add-architecture "${arch}" || echo "foreign-architecture ${arch}" >/etc/dpkg/dpkg.cfg.d/multiarch
 
-    # Add Debian keys.
-    curl --retry 3 -sSfL 'https://ftp-master.debian.org/keys/archive-key-{7.0,8,9,10,11,12}.asc' -O
-    curl --retry 3 -sSfL 'https://ftp-master.debian.org/keys/archive-key-{8,9,10,11,12}-security.asc' -O
-    curl --retry 3 -sSfL 'https://ftp-master.debian.org/keys/release-{7,8,9,10,11,12}.asc' -O
-    curl --retry 3 -sSfL 'https://www.ports.debian.org/archive_{2020,2021,2022,2023,2024,2025}.key' -O
+    # Use a single connection per url which is slower but should fix the
+    # intermittent error: curl: (16) Error in the HTTP2 framing layer
+    for url in \
+        'https://www.ports.debian.org/archive_'{2020,2021,2022,2023,2024,2025}.key \
+        'https://ftp-master.debian.org/keys/release-'{7,8,9,10,11,12}.asc \
+        'https://ftp-master.debian.org/keys/archive-key-'{8,9,10,11,12}-security.asc \
+        'https://ftp-master.debian.org/keys/archive-key-'{7.0,8,9,10,11,12}.asc; do
+        curl --retry 3 -sSfL "$url" -O
+    done
 
     for key in *.asc *.key; do
         apt-key add "${key}"
@@ -211,6 +224,7 @@ main() {
     # allow apt-get to retry downloads
     echo 'APT::Acquire::Retries "3";' >/etc/apt/apt.conf.d/80-retries
 
+    # apt-get -o Acquire::Check-Valid-Until=false update
     apt-get update
 
     mkdir -p "/qemu/${arch}"
@@ -238,10 +252,27 @@ main() {
         "libtommath1:${arch}" \
         "libtomcrypt1:${arch}" \
         "libgmp10:${arch}" \
-        "libc6:${arch}" \
         "linux-image-${kernel}:${arch}" \
         ncurses-base"${ncurses}" \
         "zlib1g:${arch}"
+
+    if [[ "$arch" == "s390x" ]]; then
+        # The libc version on the current 22.04 ubuntu (2026-05-01) is 2.35, so 2.36
+        # from the snapshot should work
+        wget "https://snapshot.debian.org/archive/debian-security/${snapshot}/pool/updates/main/g/glibc/libc6_2.36-9%2Bdeb12u7_s390x.deb"
+        wget "https://snapshot.debian.org/archive/debian-security/${snapshot}/pool/updates/main/g/glibc/libc6-dbg_2.36-9%2Bdeb12u7_s390x.deb"
+    elif [[ "$arch" == "riscv64" ]]; then
+        apt-get -d --no-install-recommends download \
+            "libc6:${arch}" \
+            "libc6-dbg:${arch}" \
+            "linux-base-${kernel}:${arch}" \
+            "linux-binary-${kernel}:${arch}" \
+            "linux-modules-${kernel}:${arch}"
+    else
+        apt-get -d --no-install-recommends download \
+            "libc6:${arch}" \
+            "libc6-dbg:${arch}"
+    fi
 
     if [[ "${arch}" != "${dpkg_arch}" ]]; then
         apt-get -d --no-install-recommends download "${libgcc_packages[@]}"
@@ -282,6 +313,10 @@ main() {
         dpkg -x "${deb}" "${root}"/
     done
 
+    # Install valgrind
+    mv /tmp/valgrind/* "${root}"/
+    rmdir /tmp/valgrind
+
     cp "${root}/boot/vmlinu"* kernel
 
     # initrd
@@ -317,6 +352,7 @@ EOF
 root::0:0:root:/root:/bin/sh
 EOF
 
+    # spell-checker: disable
     cat <<'EOF' | uudecode -o "$root/etc/dropbear/dropbear_rsa_host_key"
 begin 600 dropbear_rsa_host_key
 M````!W-S:"UR<V$````#`0`!```!`0"N!-<%K,3Z.!Z,OEMB2.N\O.$IWQ*F
@@ -340,6 +376,7 @@ H_&DE8Y(OT%%EPG]!$H&5HX*),_D1A2\P=R.7G'`0L%YM-79Y"T">$0``
 `
 end
 EOF
+    # spell-checker: enable
 
     # dropbear complains when this file is missing
     touch "${root}/var/log/lastlog"
