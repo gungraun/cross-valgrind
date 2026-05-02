@@ -5,6 +5,7 @@ armhf
 armmp
 armv7
 armv7-unknown-linux-gnueabihf
+Azbagheri
 backgrounding
 binfmt_misc
 blkid
@@ -13,6 +14,8 @@ build_static_libcap
 build_static_libmount
 build_static_pixman
 build_static_slirp
+Buildx
+clippy
 cpio
 cpus
 CROSS_TARGETARCH
@@ -27,6 +30,7 @@ drivernet
 dropbear
 elif
 esac
+exitcode
 fscache
 fsdev
 hostfwd
@@ -53,6 +57,7 @@ libtommath1
 libuuid
 mips64el-unknown-linux-gnuabi64
 mipsel
+MSRV
 multiarch
 n
 netdev
@@ -62,6 +67,7 @@ nocheckvalid
 nodefaults
 nographic
 nokaslr
+noninteractive
 oversion
 pcre
 pipefail

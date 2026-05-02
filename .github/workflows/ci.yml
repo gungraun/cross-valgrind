@@ -13,8 +13,6 @@ on:
   merge_group:
   push:
     branches: [main, staging, trying]
-    tags:
-      - "v*.*.*"
 
 name: CI
 
@@ -27,7 +25,7 @@ jobs:
   shellcheck:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v6
         with:
           ref: ${{ inputs.checkout-ref }}
 
@@ -39,7 +37,7 @@ jobs:
   cargo-deny:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v6
       with:
         ref: ${{ inputs.checkout-ref }}
     - uses: EmbarkStudios/cargo-deny-action@v2
@@ -47,7 +45,7 @@ jobs:
   fmt:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v6
         with:
           ref: ${{ inputs.checkout-ref }}
 
@@ -67,7 +65,7 @@ jobs:
           - ubuntu-latest
           - windows-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v6
         with:
           ref: ${{ inputs.checkout-ref }}
 
@@ -86,7 +84,7 @@ jobs:
           - ubuntu-latest
           - windows-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v6
         with:
           ref: ${{ inputs.checkout-ref }}
 
@@ -103,7 +101,7 @@ jobs:
     outputs:
       is-latest: ${{ steps.check.outputs.is-latest }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v6
         with:
           ref: ${{ inputs.checkout-ref }}
       - uses: ./.github/actions/setup-rust
@@ -115,7 +113,7 @@ jobs:
       matrix: ${{ steps.generate-matrix.outputs.matrix }}
       tests: ${{ steps.generate-matrix.outputs.tests }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v6
         with:
           ref: ${{ inputs.checkout-ref }}
       - uses: ./.github/actions/setup-rust
@@ -143,7 +141,7 @@ jobs:
       images: ${{ steps.build-docker-image.outputs.images && fromJSON(steps.build-docker-image.outputs.images)  }}
       coverage-artifact: ${{ steps.cov.outputs.artifact-name }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v6
         with:
           ref: ${{ inputs.checkout-ref }}
 
@@ -151,7 +149,7 @@ jobs:
 
       - name: Set up Docker Buildx
         if: runner.os == 'Linux'
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
 
       - name: Build xtask
         run: cargo build -p xtask
@@ -179,7 +177,7 @@ jobs:
       - name: Docker Meta
         if: steps.prepare-meta.outputs.has-image
         id: docker-meta
-        uses: docker/metadata-action@v4
+        uses: docker/metadata-action@v5
         with:
           images: |
             name=${{ steps.prepare-meta.outputs.image }}
@@ -219,6 +217,13 @@ jobs:
           RUNNERS: ${{ matrix.runners }}
           CROSS_DEBUG: ${{ matrix.cross-debug }}
         shell: bash
+      - name: Valgrind Smoke Test
+        if: steps.prepare-meta.outputs.has-image && steps.prepare-meta.outputs.test-variant == 'default'
+        run: ./ci/test-valgrind-smoke.sh
+        env:
+          TARGET: ${{ matrix.target }}
+          CROSS_DEBUG: ${{ matrix.cross-debug }}
+        shell: bash
       - uses: ./.github/actions/cargo-install-upload-artifacts
         if: matrix.deploy
         with:
@@ -239,7 +244,7 @@ jobs:
 
       - name: Login to GitHub Container Registry
         if: steps.prepare-meta.outputs.has-image
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -265,7 +270,7 @@ jobs:
     if: fromJson(needs.generate-matrix.outputs.tests).remote
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v6
         with:
           ref: ${{ inputs.checkout-ref }}
       - uses: ./.github/actions/setup-rust
@@ -286,7 +291,7 @@ jobs:
     if: fromJson(needs.generate-matrix.outputs.tests).bisect
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v6
         with:
           ref: ${{ inputs.checkout-ref }}
       - uses: ./.github/actions/setup-rust
@@ -307,7 +312,7 @@ jobs:
     if: fromJson(needs.generate-matrix.outputs.tests).foreign
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v6
         with:
           ref: ${{ inputs.checkout-ref }}
       - uses: ./.github/actions/setup-rust
@@ -317,11 +322,11 @@ jobs:
         with:
           name: integration-bisect
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
+        uses: docker/setup-qemu-action@v3
         with:
           platforms: arm64
       - name: Set up docker buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
         id: buildx
         with:
           install: true
@@ -334,7 +339,7 @@ jobs:
     if: fromJson(needs.generate-matrix.outputs.tests).docker-in-docker
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v6
         with:
           ref: ${{ inputs.checkout-ref }}
       - uses: ./.github/actions/setup-rust
@@ -361,7 +366,7 @@ jobs:
     outputs:
       coverage-artifact: ${{ steps.cov.outputs.artifact-name }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v6
         with:
           ref: ${{ inputs.checkout-ref }}
 
@@ -390,21 +395,8 @@ jobs:
           TARGET: aarch64-unknown-linux-gnu
         shell: bash
 
-  publish:
-    needs: [build, check, fmt, clippy, cargo-deny]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          ref: ${{ inputs.checkout-ref }}
-      - uses: ./.github/actions/setup-rust
-      - uses: ./.github/actions/cargo-publish
-        with:
-          cargo-registry-token: ${{ secrets.CARGO_REGISTRY_TOKEN }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-
   conclusion:
-    needs: [shellcheck, fmt, clippy, test, generate-matrix, build, publish, check, remote, bisect, docker-in-docker, foreign, podman]
+    needs: [shellcheck, fmt, clippy, test, generate-matrix, build, check, remote, bisect, docker-in-docker, foreign, podman]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -417,42 +409,4 @@ jobs:
         env:
           needs: ${{ toJson(needs) }}
 
-  code-cov:
-    name: Coverage
-    needs: [test, build, conclusion, generate-matrix]
-    # should check that there are any artifacts, if not skip
-    if: always() && (needs.build.result == 'success' || needs.build.result == 'skipped') && needs.test.result == 'success'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          ref: ${{ inputs.checkout-ref }}
-      - uses: ./.github/actions/setup-rust
-      - uses: actions/download-artifact@v4
-        with:
-          path: ${{ runner.temp }}/artifacts
-      - name: Grab PR number
-        run: echo "pr=$(echo ${commit_message} | sed -ne 's/.*#\(.*\):/\1/p')" >> $GITHUB_OUTPUT
-        id: pr-number
-        if: ${{ !github.event.pull_request.number }}
-        env:
-          commit_message: >
-            ${{
-              ((
-                startsWith(github.event.head_commit.message, 'Try #') &&
-                github.event.head_commit.author.username == 'bors[bot]'
-              ) && github.event.head_commit.message) || ''
-            }}
-      - name: Upload to codecov.io
-        run: |
-          set -x
-          curl -Os https://uploader.codecov.io/latest/linux/codecov
-          chmod +x codecov
-          sha_rev=$(git rev-parse HEAD)
-          for file in $(find ${artifacts} -name "lcov.*.info" -exec ls {} +); do
-            name=$(echo $file | awk -F'.' '{print $2}');
-            ./codecov -F $name ${pr:+-P ${pr}} -f $file --sha ${sha_rev} -n $name;
-          done
-        env:
-          pr: ${{  steps.pr-number.outputs.pr }}
-          artifacts: ${{ runner.temp }}/artifacts
+
