@@ -175,6 +175,7 @@ main() {
     esac
 
     install_packages ca-certificates \
+        wget \
         curl \
         cpio \
         sharutils \

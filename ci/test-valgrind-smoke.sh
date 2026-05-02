@@ -1,14 +1,13 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -eo pipefail
 
-# Map target triple to linux-runner qemu arch argument
-case "$TARGET" in
-armv7-*) ARCH=armv7hf ;;
-riscv64gc-*) ARCH=riscv64 ;;
-*)
-    ARCH=${TARGET%%-*}
-    ;;
-esac
+ci_dir=$(dirname "${BASH_SOURCE[0]}")
+ci_dir=$(realpath "${ci_dir}")
+
+# shellcheck disable=SC1091
+. "${ci_dir}"/shared.sh
+
+CROSS=$(binary_path cross "${PROJECT_HOME}" debug)
 
 td=$(mktemp -d)
 trap 'rm -rf "$td"' EXIT
@@ -19,16 +18,18 @@ cd "$td"
 cargo init --bin --name hello
 
 # Build for the target
-cross build --target "$TARGET"
+"${CROSS[@]}" build --target "$TARGET"
 
 # Create Cross.toml that runs the binary under valgrind inside the VM
 cat >Cross.toml <<EOF
-[target.${TARGET}]
-runner = "/linux-runner ${ARCH} /usr/bin/valgrind --error-exitcode=1 --leak-check=full"
+[target.${TARGET}.env]
+passthrough = [
+  "CROSS_VALGRIND=valgrind --tool=memcheck --error-exitcode=1 --leak-check=full"
+]
 EOF
 
 # Run under valgrind -- this exercises the full system path:
 # cross → Docker → linux-runner → qemu-system → VM → dbclient → valgrind
-cross run --target "$TARGET"
+"${CROSS[@]}" run --target "$TARGET"
 
 echo "Valgrind smoke test passed for $TARGET"

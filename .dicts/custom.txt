@@ -62,6 +62,7 @@ libstdc
 libtomcrypt1
 libtommath1
 libuuid
+memcheck
 mips64el-unknown-linux-gnuabi64
 mipsel
 MSRV

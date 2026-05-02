@@ -21,6 +21,10 @@ env:
   CARGO_HTTP_CHECK_REVOKE: false
   CROSS_IMAGE: ghcr.io/${{ github.repository_owner }}
 
+concurrency:
+  group: ${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   shellcheck:
     runs-on: ubuntu-latest
