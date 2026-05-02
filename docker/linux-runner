@@ -17,11 +17,7 @@ arch="${1}"
 shift
 
 if [[ -z "${CROSS_RUNNER}" ]]; then
-    if is_native_binary "${arch}"; then
-        CROSS_RUNNER=native
-    else
-        CROSS_RUNNER=qemu-user
-    fi
+    CROSS_RUNNER=qemu-system
 fi
 
 # Ensure that the correct prefix is set even if the user has cleared the env.
@@ -31,17 +27,21 @@ export QEMU_LD_PREFIX=${QEMU_LD_PREFIX:-@DEFAULT_QEMU_LD_PREFIX@}
 qarch=$(qemu_arch "${arch}")
 case "${CROSS_RUNNER}" in
 native)
-    exec "${@}"
+    echo "Invalid runner: \"${CROSS_RUNNER}\""
+    echo "Currently only qemu-system is supported"
+    exit 1
     ;;
 qemu-user)
-    exec "qemu-${qarch}" "${@}"
+    echo "Invalid runner: \"${CROSS_RUNNER}\""
+    echo "Currently only qemu-system is supported"
+    exit 1
     ;;
 qemu-system)
     true
     ;;
 *)
     echo "Invalid runner: \"${CROSS_RUNNER}\""
-    echo "Valid runners are: native, qemu-user and qemu-system"
+    echo "Valid runners are: qemu-system"
     exit 1
     ;;
 esac

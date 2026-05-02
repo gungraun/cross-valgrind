@@ -4,6 +4,7 @@ archs
 armhf
 armmp
 armv7
+armv7-unknown-linux-gnueabihf
 backgrounding
 binfmt_misc
 blkid
@@ -50,6 +51,7 @@ libstdc
 libtomcrypt1
 libtommath1
 libuuid
+mips64el-unknown-linux-gnuabi64
 mipsel
 multiarch
 n
@@ -79,3 +81,4 @@ virtio
 virtio_mmio
 virtio_net
 vmlinu
+xtask

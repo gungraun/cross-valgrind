@@ -10,7 +10,7 @@ cpp = true
 dylib = true
 std = true
 run = true
-runners = "native qemu-system"
+runners = "qemu-system"
 deploy = true
 
 [[target]]
@@ -20,7 +20,7 @@ cpp = true
 dylib = true
 std = true
 run = true
-runners = "native qemu-system"
+runners = "qemu-system"
 deploy = true
 
 [[target]]
