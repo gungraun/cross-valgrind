@@ -43,8 +43,9 @@ strip_quotes() {
 IFS=' ' read -ra configure_args <<<"$(strip_quotes "${VALGRIND_CONFIGURE_ARGS}")"
 IFS=' ' read -ra configure_extra_args <<<"$(strip_quotes "${VALGRIND_CONFIGURE_EXTRA_ARGS}")"
 IFS=' ' read -ra make_extra_args <<<"$(strip_quotes "${VALGRIND_MAKE_EXTRA_ARGS}")"
+IFS=' ' read -r cflags <<<"$(strip_quotes "${VALGRIND_CFLAGS}")"
 
-install_packages wget lbzip2
+install_packages wget lbzip2 patch
 
 cd
 
@@ -62,20 +63,26 @@ tar xf "${asset}"
 
 cd ~/valgrind/"${asset_name}"
 
-dest_dir="/tmp/valgrind"
+if [[ -f /valgrind-mips64-sa_flags.patch ]]; then
+    patch -p1 </valgrind-mips64-sa_flags.patch
+fi
+
+dest_dir="/valgrind"
 mkdir -p "$dest_dir"
 
-# According to valgrind/configure file, the CROSS_TARGET is
-# supported as is for the --host variable. If the target is not supported by
-# valgrind, configure will exit with an error.
+if [[ -n "$cflags" ]]; then
+    export CFLAGS="${cflags}"
+fi
+
+# According to valgrind/configure file, the CROSS_TARGET is supported as is for
+# the --host variable. If the target is not supported by valgrind, configure
+# will exit with an error.
 ./configure "${configure_args[@]}" \
     --host="${HOST}" \
     "${configure_extra_args[@]}"
 
 make -"j$(nproc)" BUILD_DOCS=none "${make_extra_args[@]}"
 make install DESTDIR="$dest_dir"
-
-cp -a ${dest_dir}/usr/include/valgrind /usr/include
 
 cd
 rm -rf valgrind/

@@ -59,11 +59,7 @@ main() {
     local arch="${1}" \
         kversion='6.*'
 
-    local debsource="deb http://http.debian.net/debian/ bookworm main"
-    debsource="${debsource}\ndeb http://security.debian.org/ bookworm-security main"
-
-    local dropbear="dropbear-bin"
-
+    local debsource
     local -a deps
     local kernel=
     local libgcc="libgcc-s1"
@@ -120,7 +116,6 @@ main() {
         echo "APT::Get::AllowUnauthenticated true;" | tee -a /etc/apt/apt.conf.d/10-nocheckvalid
         echo "Acquire::AllowInsecureRepositories True;" | tee -a /etc/apt/apt.conf.d/10-nocheckvalid
 
-        dropbear="dropbear"
         deps=(libcrypt1:"${arch}")
         ;;
     powerpc64)
@@ -146,17 +141,8 @@ main() {
         ;;
     s390x)
         arch=s390x
-        # snapshot=20250501T000412Z
-        # debsource="deb [check-valid-until=no] https://snapshot.debian.org/archive/debian/${snapshot} bullseye main"
-        # debsource="${debsource}\ndeb [check-valid-until=no] https://snapshot.debian.org/archive/debian-security/${snapshot} bullseye-security main"
-        # kernel='5.*-s390x'
         deps=(libcrypt1:"${arch}")
-        # ncurses="=6.2*"
         kernel="${kversion}-s390x"
-
-        # echo "Acquire::Check-Valid-Until false;" | tee -a /etc/apt/apt.conf.d/10-nocheckvalid
-        # echo "APT::Get::AllowUnauthenticated true;" | tee -a /etc/apt/apt.conf.d/10-nocheckvalid
-        # echo "Acquire::AllowInsecureRepositories True;" | tee -a /etc/apt/apt.conf.d/10-nocheckvalid
         ;;
     sparc64)
         # there is no stable port
@@ -179,7 +165,6 @@ main() {
     esac
 
     install_packages ca-certificates \
-        wget \
         curl \
         cpio \
         sharutils \
@@ -200,10 +185,11 @@ main() {
         popd
     fi
 
-    # Download packages
-    mv /etc/apt/sources.list /etc/apt/sources.list.bak
-    mv /etc/apt/sources.list.d /etc/apt/sources.list.d.bak
-    echo -e "${debsource}" >/etc/apt/sources.list
+    if [[ -n "$debsource" ]]; then
+        mv /etc/apt/sources.list /etc/apt/sources.list.bak
+        mv /etc/apt/sources.list.d /etc/apt/sources.list.d.bak
+        echo -e "${debsource}" >/etc/apt/sources.list
+    fi
 
     # Old ubuntu does not support --add-architecture, so we directly change multiarch file
     if [ -f /etc/dpkg/dpkg.cfg.d/multiarch ]; then
@@ -253,32 +239,14 @@ main() {
     apt-get -d --no-install-recommends download \
         ${deps[@]+"${deps[@]}"} \
         "busybox:${arch}" \
-        "${dropbear}:${arch}" \
-        "libtommath1:${arch}" \
-        "libtomcrypt1:${arch}" \
+        "libc6-dbg:${arch}" \
+        "libc6:${arch}" \
         "libgmp10:${arch}" \
+        "libtomcrypt1:${arch}" \
+        "libtommath1:${arch}" \
         "linux-image-${kernel}:${arch}" \
         ncurses-base"${ncurses}" \
         "zlib1g:${arch}"
-
-    # if [[ "$arch" == "s390x" ]]; then
-    #     # The libc version on the current 22.04 ubuntu (2026-05-01) is 2.35, so 2.36
-    #     # from the snapshot should work
-    #     # wget "https://snapshot.debian.org/archive/debian-security/${snapshot}/pool/updates/main/g/glibc/libc6_2.36-9%2Bdeb12u7_s390x.deb"
-    #     # wget "https://snapshot.debian.org/archive/debian-security/${snapshot}/pool/updates/main/g/glibc/libc6-dbg_2.36-9%2Bdeb12u7_s390x.deb"
-    # elif [[ "$arch" == "riscv64" ]]; then
-    if [[ "$arch" == "riscv64" ]]; then
-        apt-get -d --no-install-recommends download \
-            "libc6:${arch}" \
-            "libc6-dbg:${arch}" \
-            "linux-base-${kernel}:${arch}" \
-            "linux-binary-${kernel}:${arch}" \
-            "linux-modules-${kernel}:${arch}"
-    else
-        apt-get -d --no-install-recommends download \
-            "libc6:${arch}" \
-            "libc6-dbg:${arch}"
-    fi
 
     if [[ "${arch}" != "${dpkg_arch}" ]]; then
         apt-get -d --no-install-recommends download "${libgcc_packages[@]}"
@@ -322,6 +290,18 @@ main() {
     # Install valgrind
     cp -a /tmp/valgrind/* "${root}"/
     rm -rf /tmp/valgrind
+
+    # Install dropbear
+    cp -a /tmp/dropbear/* "${root}"/
+    rm -rf /tmp/dropbear
+
+    dropbearkey -t rsa -f "${root}/etc/dropbear/dropbear_rsa_host_key"
+    dropbearkey -t ecdsa -f "${root}/etc/dropbear/dropbear_ecdsa_host_key"
+    dropbearkey -t ed25519 -f "${root}/etc/dropbear/dropbear_ed25519_host_key"
+
+    # Install util-linux/setarch
+    cp -a /tmp/util-linux/setarch "${root}"/usr/bin/
+    rm -rf /tmp/util-linux
 
     cp "${root}/boot/vmlinu"* kernel
 
@@ -399,11 +379,21 @@ set -e
 
 ${busybox} --install
 
-mount -t devtmpfs devtmpfs /dev
-mount -t proc none /proc
-mount -t sysfs none /sys
-mkdir /dev/pts
-mount -t devpts none /dev/pts/
+mkdir -p /dev /proc /run /sys /tmp
+
+mount -t devtmpfs none /dev
+mount -t proc proc /proc
+mount -t sysfs sys /sys
+
+mkdir -p /dev/pts
+mount -t devpts none /dev/pts
+
+mount -t tmpfs none /run
+mkdir -p /run/lock
+
+mount -t tmpfs none /tmp
+
+mount
 
 # some archs does not have virtio modules
 # fscache is builtin on riscv64
@@ -422,14 +412,18 @@ insmod /modules/9pnet.ko || insmod /modules/9pnet.ko.xz
 insmod /modules/9pnet_virtio.ko || insmod /modules/9pnet_virtio.ko.xz || true
 insmod /modules/9p.ko || insmod /modules/9p.ko.xz
 
-ifconfig lo 127.0.0.1
-ifconfig eth0 10.0.2.15
-route add default gw 10.0.2.2 eth0
+ip addr add 127.0.0.1/8 dev lo
+ip link set lo up
+
+ip addr add 10.0.2.15/24 dev eth0
+ip link set eth0 up
+
+ip route add default via 10.0.2.2 dev eth0
 
 mkdir /target
 mount -t 9p -o trans=virtio target /target -oversion=9p2000.u || true
 
-exec dropbear -F -E -B
+exec dropbear -F -B
 EOF
 
     if [[ "${arch}" == "riscv64" ]]; then
@@ -453,14 +447,19 @@ EOF
 
     # Clean up
     rm -rf "/qemu/${root}" "/qemu/${arch}"
-    mv -f /etc/apt/sources.list.bak /etc/apt/sources.list
-    mv -f /etc/apt/sources.list.d.bak /etc/apt/sources.list.d
+
+    if [[ -n "$debsource" ]]; then
+        mv -f /etc/apt/sources.list.bak /etc/apt/sources.list
+        mv -f /etc/apt/sources.list.d.bak /etc/apt/sources.list.d
+    fi
+
     if [ -f /etc/dpkg/dpkg.cfg.d/multiarch.bak ]; then
         mv /etc/dpkg/dpkg.cfg.d/multiarch.bak /etc/dpkg/dpkg.cfg.d/multiarch
     fi
     if [ -f /etc/apt/apt.conf.d/10-nocheckvalid ]; then
         rm /etc/apt/apt.conf.d/10-nocheckvalid
     fi
+
     # can fail if arch is used (image arch, such as amd64 and/or i386)
     dpkg --remove-architecture "${arch}" || true
     apt-get update

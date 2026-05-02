@@ -1,60 +1,82 @@
 #!/usr/bin/env bash
 
-set -x
-set -euo pipefail
+# spell-checker: ignore localoptions dbclient ddropbear cflags
+
+set -ex
 
 # shellcheck disable=SC1091
 . lib.sh
 
-main() {
-    local version=2022.82
-    local mirrors=(
-        "https://matt.ucc.asn.au/dropbear/releases"
-        "https://mirror.dropbear.nl/mirror"
-    )
+version="${DROPBEAR_VERSION:?A dropbear version should be present}"
+dest_dir="/dropbear"
+toolchain="${CROSS_TOOLCHAIN_PREFIX%-}"
+debian_arch="$1"
 
-    install_packages \
-        autoconf \
-        automake \
-        bzip2 \
-        curl \
-        make
+# To be sure since we install dropbear statically on the host
+apt-get purge -y dropbear
 
-    if_centos install_packages zlib-devel
-    if_ubuntu install_packages zlib1g-dev
+dpkg --add-architecture "${debian_arch}" || echo "foreign-architecture ${debian_arch}" >/etc/dpkg/dpkg.cfg.d/multiarch
+if_debian install_packages \
+    gnupg \
+    wget \
+    zlib1g \
+    zlib1g-dev \
+    zlib1g:"$debian_arch" \
+    zlib1g-dev:"$debian_arch"
 
-    local td
-    td="$(mktemp -d)"
+build_dir="${HOME}/dropbear"
+mkdir -p "$build_dir"
+pushd "$build_dir"
 
-    pushd "${td}"
+wget "https://github.com/mkj/dropbear/archive/refs/tags/DROPBEAR_${version}.tar.gz"
+tar xzf "DROPBEAR_${version}.tar.gz"
+cd "dropbear-DROPBEAR_${version}"
 
-    download_mirrors "" "dropbear-${version}.tar.bz2" "${mirrors[@]}"
-    tar --strip-components=1 -xjf "dropbear-${version}.tar.bz2"
+# Two builds. The first is for the host and the second for the image. The image
+# build needs to be cross-compiled with the target triple.
 
-    # Remove some unwanted message
-    sed -i '/skipping hostkey/d' cli-kex.c
-    sed -i '/failed to identify current user/d' cli-runopts.c
+# https://github.com/mkj/dropbear/blob/master/src/default_options.h
+cp /dropbear_options.h localoptions.h
 
-    ./configure \
-        --disable-syslog \
-        --disable-shadow \
-        --disable-lastlog \
-        --disable-utmp \
-        --disable-utmpx \
-        --disable-wtmp \
-        --disable-wtmpx \
-        --disable-pututline \
-        --disable-pututxline
+# Remove this unwanted message if it is present
+sed -i '/skipping hostkey/d' src/cli-kex.c || true
 
-    make "-j$(nproc)" PROGRAMS=dbclient
-    cp dbclient /usr/local/bin/
+common_opts=(
+    "--prefix=/usr"
+    "--enable-static"
+    "--disable-lastlog"
+    "--disable-pututline"
+    "--disable-pututxline"
+    "--disable-shadow"
+    "--disable-syslog"
+    "--disable-utmp"
+    "--disable-utmpx"
+    "--disable-wtmp"
+    "--disable-wtmpx"
+)
 
-    purge_packages
+./configure "${common_opts[@]}"
 
-    popd
+make -j"$(nproc)" PROGRAMS="dbclient dropbearkey scp"
+make PROGRAMS="dbclient dropbearkey scp" install
 
-    rm -rf "${td}"
-    rm "${0}"
-}
+make clean
 
-main "${@}"
+export CC="${toolchain}-gcc"
+export LD="${toolchain}-ld"
+export AR="${toolchain}-ar"
+
+which "$CC" "$LD" "$AR"
+
+./configure "${common_opts[@]}" \
+    --host="$toolchain"
+
+make -j"$(nproc)" PROGRAMS="dropbear scp"
+make DESTDIR="$dest_dir" PROGRAMS="dropbear scp" install
+
+popd
+rm -rf "$build_dir"
+
+purge_packages
+
+exit 0

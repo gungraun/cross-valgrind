@@ -1,21 +1,15 @@
-FROM ubuntu:22.04 AS cross-base
-ENV DEBIAN_FRONTEND=noninteractive
+FROM debian:bookworm AS common
+
 ARG CROSS_TARGET=i686-unknown-linux-gnu
-ARG VALGRIND_VERSION=3.27.0
-ARG VALGRIND_CONFIGURE_ARGS="--prefix=/usr --enable-tls --enable-lto --enable-only32bit"
-ARG VALGRIND_CONFIGURE_EXTRA_ARGS=""
-ARG VALGRIND_MAKE_EXTRA_ARGS=""
+ENV DEBIAN_FRONTEND=noninteractive
+ENV CROSS_TOOLCHAIN_PREFIX=i686-linux-gnu-
+ENV CROSS_SYSROOT=/usr/i686-linux-gnu
 
 COPY common.sh lib.sh /
 RUN /common.sh
 
 COPY cmake.sh /
 RUN /cmake.sh
-
-FROM cross-base AS build
-
-ENV CROSS_TOOLCHAIN_PREFIX=i686-linux-gnu-
-ENV CROSS_SYSROOT=/usr/i686-linux-gnu
 
 RUN apt-get update && apt-get install --assume-yes --no-install-recommends \
     g++-i686-linux-gnu \
@@ -27,17 +21,86 @@ RUN TARGET_ARCH=i386 /deny-debian-packages.sh \
     binutils \
     binutils-i686-linux-gnu
 
-COPY qemu.sh /
-RUN /qemu.sh i386 softmmu
+FROM common AS valgrind
 
-COPY dropbear.sh /
-RUN /dropbear.sh
+ARG VALGRIND_VERSION=3.27.0
+ARG VALGRIND_CONFIGURE_ARGS="--prefix=/usr --enable-tls --enable-lto --enable-only32bit"
+ARG VALGRIND_CONFIGURE_EXTRA_ARGS=""
+ARG VALGRIND_MAKE_EXTRA_ARGS=""
 
-COPY build-valgrind.sh /
-RUN /build-valgrind.sh
+COPY valgrind.sh /
+RUN /valgrind.sh
+
+RUN apt-get autopurge -y \
+    && rm -rf /var/lib/apt/lists/*
+
+FROM common as dropbear
+
+ARG DROPBEAR_VERSION=2025.88
+
+COPY dropbear.sh dropbear_options.h /
+RUN /dropbear.sh i386
+
+RUN apt-get autopurge -y \
+    && rm -rf /var/lib/apt/lists/*
+
+FROM common as util-linux
+
+ARG UTIL_LINUX_VERSION=2.41.2
+
+COPY util-linux.sh /
+RUN /util-linux.sh
+
+RUN apt-get autopurge -y \
+    && rm -rf /var/lib/apt/lists/*
+
+FROM common as image
+
+COPY --from=valgrind /valgrind /tmp/valgrind/
+COPY --from=util-linux /util-linux/usr/bin/setarch /tmp/util-linux/
+COPY --from=dropbear /dropbear /tmp/dropbear/
+COPY --from=dropbear /usr/bin/dropbearkey /usr/bin/
 
 COPY linux-image.sh /
 RUN /linux-image.sh i686
+
+RUN apt-get autopurge -y \
+    && rm -rf /var/lib/apt/lists/*
+
+FROM common as qemu
+
+COPY --from=valgrind /valgrind/usr/include/valgrind /usr/include/valgrind/
+
+ARG SLIRP_VERSION=4.9.1
+ARG QEMU_VERSION=10.0.4
+
+COPY slirp.sh /
+RUN /slirp.sh
+
+# slirp installs the pkg-config files here
+ENV PKG_CONFIG_PATH=/usr/lib64/pkgconfig
+
+COPY qemu.sh /
+RUN /qemu.sh i386
+
+RUN apt-get autopurge -y \
+    && rm -rf /var/lib/apt/lists/*
+
+FROM common as runner
+
+COPY --from=dropbear /usr/bin/dbclient \
+    /usr/bin/dropbearkey \
+    /usr/bin/scp \
+    /usr/bin/
+COPY --from=image /qemu /qemu/
+COPY --from=qemu /qemu /
+COPY --from=qemu /usr/lib64/libslirp.so.0.4.0 /usr/lib64/
+COPY --from=valgrind /valgrind/usr/include/valgrind /usr/include/valgrind/
+
+RUN cd /usr/lib/ && \
+    ln -s /usr/lib64/libslirp.so.0.4.0 . && \
+    ln -s libslirp.so.0.4.0 libslirp.so.0 && \
+    ln -s libslirp.so.0 libslirp.so
 
 COPY linux-runner base-runner.sh /
 COPY toolchain.cmake /opt/toolchain.cmake

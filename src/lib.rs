@@ -477,8 +477,13 @@ impl CommandVariant {
 fn warn_on_failure(
     target: &Target,
     toolchain: &QualifiedToolchain,
+    build_std: &BuildStd,
     msg_info: &mut MessageInfo,
 ) -> Result<()> {
+    if build_std.enabled() {
+        return Ok(());
+    }
+
     let rust_std = format!("rust-std-{target}");
     if target.is_builtin() {
         let component = rustup::check_component(&rust_std, toolchain, msg_info)?;
@@ -634,7 +639,7 @@ pub fn run(
 
                 let needs_host = args.subcommand.is_some_and(|sc| sc.needs_host(is_remote));
                 if !status.success() {
-                    warn_on_failure(&target, &toolchain, msg_info)?;
+                    warn_on_failure(&target, &toolchain, &build_std, msg_info)?;
                 }
                 if !(status.success() && needs_host) {
                     return Ok(Some(status));

@@ -5,12 +5,33 @@ set -e
 # shellcheck disable=SC1091
 . /base-runner.sh
 
+# Return true if the log level is debug
+is_debug() {
+    [[ -n "$CROSS_DEBUG" ]]
+}
+
+# If debugging is activated, execute the given arguments in a subshell
+if_debug() {
+    if is_debug; then
+        "$@"
+    else
+        true
+    fi
+}
+
+# If debugging is not set, execute the given arguments in a subshell
+if_not_debug() {
+    if ! is_debug; then
+        "$@"
+    else
+        true
+    fi
+}
+
+if_debug set -x
+
 LOG=/tmp/qemu.log
 LOCK=/tmp/qemu.lock
-
-if [ -n "${CROSS_DEBUG}" ]; then
-    set -x
-fi
 
 # arch in the rust target
 arch="${1}"
@@ -67,15 +88,11 @@ i686)
     opt="-append console=ttyS0"
     ;;
 mips | mipsel)
-    # avoid kernel error
-    # https://blahcat.github.io/2017/07/14/building-a-debian-stretch-qemu-image-for-mipsel/
     opt="-append nokaslr"
     n=1
     ;;
 mips64el)
-    # avoid kernel error
-    # https://blahcat.github.io/2017/07/14/building-a-debian-stretch-qemu-image-for-mipsel/
-    opt="-append nokaslr -cpu MIPS64R2-generic"
+    opt="-append nokaslr -M malta -cpu MIPS64R2-generic"
     n=1
     ;;
 powerpc)
@@ -93,11 +110,6 @@ s390x)
     driver9p="virtio-9p-ccw"
     drivernet="virtio-net-ccw"
     ;;
-sparc64)
-    n=1
-    driver9p+=",bus=pciB"
-    drivernet+=",bus=pciB"
-    ;;
 x86_64)
     opt="-append console=ttyS0"
     ;;
@@ -106,15 +118,14 @@ esac
 (
     flock -n 200 || exit 0
 
-    echo Booting QEMU virtual machine with $n cpus...
+    echo Booting QEMU virtual machine with "$n" cpus...
 
     QEMU_CMD="qemu-system-${qarch} \
         -m ${memory} \
         -smp ${n} \
         -nographic \
         -monitor none \
-        -netdev user,id=net0,hostfwd=tcp::10022-:22 \
-        -device ${drivernet},netdev=net0 \
+        -nic user,model=${drivernet},hostfwd=tcp::10022-:22,ipv6=off \
         -kernel /qemu/kernel \
         -initrd /qemu/initrd.gz \
         ${opt} \
@@ -122,38 +133,63 @@ esac
         -device ${driver9p},fsdev=fs0,mount_tag=target"
 
     touch "${LOG}"
-    if [[ -n "${CROSS_DEBUG}" ]]; then
-        (${QEMU_CMD} 2>&1 | tee -a "${LOG}") &
+    if is_debug; then
+        # Close fd 200 in child so it doesn't hold the flock lock
+        (
+            exec 200>&-
+            ${QEMU_CMD} 2>&1 | tee -a "${LOG}"
+        ) &
     else
-        ${QEMU_CMD} >>"${LOG}" 2>&1 &
+        (
+            exec 200>&-
+            ${QEMU_CMD} >>"${LOG}" 2>&1
+        ) &
     fi
     qemu_pid=$!
 
-    # wait for dropbear
-    for _ in $(seq 240); do
-        if grep -q "Not backgrounding" "${LOG}"; then
-            READY=1
-            break
-        elif ! (ps -p "${qemu_pid}" >/dev/null 2>&1); then
-            # qemu command failed and exited early
+    # Wait for qemu to print dropbear's final 'Not backgrounding' message or until
+    # the timeout is reached
+    ticks=0
+    timeout=240
+    while true; do
+        if ! kill -0 "$qemu_pid" 2>/dev/null; then
+
+            echo -e "\nStarting qemu failed:\n"
+            if_not_debug echo "Set the environment variable CROSS_DEBUG=1 to debug"
+            if_not_debug echo "Last 100 lines of qemu output:"
+            if_not_debug tail -n 100 "${LOG}"
+
             exit 1
+        elif tail -10 "$LOG" | grep -q -e '---\[ end Kernel panic'; then
+            kill -9 $qemu_pid
+
+            echo -e "\nStarting qemu failed:\n"
+            if_not_debug echo "Set the environment variable CROSS_DEBUG=1 to debug"
+            if_not_debug echo "Last 100 lines of qemu output:"
+            if_not_debug tail -n 100 "${LOG}"
+
+            exit 1
+        elif tail -10 "$LOG" | grep -q "Not backgrounding"; then
+            break
+        elif ((ticks >= timeout)); then
+            kill -9 $qemu_pid
+
+            echo "Qemu is not ready after ${ticks} seconds..."
+
+            if_not_debug echo "Set the environment variable CROSS_DEBUG=1 to debug"
+            if_not_debug echo "Last 100 lines of qemu output:"
+            if_not_debug tail -n 100 "${LOG}"
+
+            exit 1
+        else
+            : # do nothing
         fi
-        sleep 0.5s
+
+        sleep 0.5
+        _=$((ticks++))
     done
 
-    if [ -z "${READY}" ]; then
-        if [ -n "${CROSS_DEBUG}" ]; then
-            echo "Not ready but continuing because CROSS_DEBUG is set"
-        else
-            echo "Qemu is not ready after ${SECONDS} seconds..."
-            echo "Set the environment variable CROSS_DEBUG=1 to debug"
-            echo "Last 100 lines of qemu output:"
-            tail -n 100 "${LOG}"
-            exit 1
-        fi
-    fi
-
-    echo "Booted in ${SECONDS} seconds"
+    echo "Booted in $((ticks / 2)) seconds"
 
 ) 200>"${LOCK}"
 

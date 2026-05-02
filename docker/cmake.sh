@@ -7,6 +7,7 @@ set -euo pipefail
 . lib.sh
 
 main() {
+    # FIX: Update to the latest 3.x version
     local version=3.23.1
 
     install_packages curl
@@ -19,7 +20,7 @@ main() {
     local cmake_sha256
 
     local narch
-    narch="$(uname -p)"
+    narch="$(uname -m)"
 
     echo "[INFO] $narch"
 
