@@ -4,6 +4,7 @@
 **/*.log
 /cargo-timing*.html
 CHANGELOG.md.draft
+.opencode
 
 # python stuff
 __pycache__/
