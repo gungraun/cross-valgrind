@@ -1,0 +1,2 @@
+lbzip2
+riscv
