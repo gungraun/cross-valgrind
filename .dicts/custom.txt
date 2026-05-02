@@ -89,6 +89,7 @@ softmmu
 subcomponents
 sysfs
 TARGETARCH
+trixie
 tty_flag
 virt
 virtfs

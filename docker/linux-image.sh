@@ -68,7 +68,7 @@ main() {
     local kernel=
     local libgcc="libgcc-s1"
     local ncurses=
-    local snapshot=
+    # local snapshot=
 
     # select debian arch and kernel version
     case "${arch}" in
@@ -79,7 +79,7 @@ main() {
         ;;
     armv7)
         arch=armhf
-        kernel='5.*-armmp'
+        kernel="${kversion}-armmp"
         deps=(libcrypt1:"${arch}")
         ;;
     i686)
@@ -89,21 +89,23 @@ main() {
         ;;
     mips)
         # mips was discontinued in bullseye, so we have to use buster.
-        libgcc="libgcc1"
         debsource="deb http://http.debian.net/debian/ buster main"
         debsource="${debsource}\ndeb http://security.debian.org/ buster/updates main"
         kernel='4.*-4kc-malta'
         ncurses="=6.1*"
+        libgcc="libgcc1"
         ;;
     mipsel)
-        kernel='5.*-4kc-malta'
+        kernel="${kversion}-4kc-malta"
         deps=(libcrypt1:"${arch}")
         ;;
     mips64el)
-        kernel='5.*-5kc-malta'
+        kernel="${kversion}-5kc-malta"
         deps=(libcrypt1:"${arch}")
         ;;
     powerpc)
+        # The last supported release for 32-bit PowerPC is Debian 8 ("jessie")
+        # https://www.debian.org/ports/powerpc/
         # there is no buster powerpc port, so we use jessie
         # use a more recent kernel from backports
         kversion='4.9.0-0.bpo.6'
@@ -125,7 +127,7 @@ main() {
         # there is no stable port
         arch=ppc64
         # https://packages.debian.org/en/sid/linux-image-powerpc64
-        kernel='6.*-powerpc64'
+        kernel="${kversion}-powerpc64"
         debsource="deb http://ftp.ports.debian.org/debian-ports unstable main"
         debsource="${debsource}\ndeb http://ftp.ports.debian.org/debian-ports unreleased main"
         # sid version of dropbear requires these dependencies
@@ -133,26 +135,28 @@ main() {
         ;;
     powerpc64le)
         arch=ppc64el
-        kernel='5.*-powerpc64le'
+        kernel="${kversion}-powerpc64le"
         deps=(libcrypt1:"${arch}")
         ;;
     riscv64)
-        kernel='6.*-riscv64'
-        debsource="deb http://deb.debian.org/debian unstable main"
+        kernel="${kversion}-riscv64"
+        local debsource="deb http://http.debian.net/debian/ trixie main"
+        debsource="${debsource}\ndeb http://security.debian.org/ trixie-security main"
         deps=(libcrypt1:"${arch}")
         ;;
     s390x)
         arch=s390x
-        snapshot=20250501T000412Z
-        debsource="deb [check-valid-until=no] https://snapshot.debian.org/archive/debian/${snapshot} bullseye main"
-        debsource="${debsource}\ndeb [check-valid-until=no] https://snapshot.debian.org/archive/debian-security/${snapshot} bullseye-security main"
-        kernel='5.*-s390x'
+        # snapshot=20250501T000412Z
+        # debsource="deb [check-valid-until=no] https://snapshot.debian.org/archive/debian/${snapshot} bullseye main"
+        # debsource="${debsource}\ndeb [check-valid-until=no] https://snapshot.debian.org/archive/debian-security/${snapshot} bullseye-security main"
+        # kernel='5.*-s390x'
         deps=(libcrypt1:"${arch}")
-        ncurses="=6.2*"
+        # ncurses="=6.2*"
+        kernel="${kversion}-s390x"
 
-        echo "Acquire::Check-Valid-Until false;" | tee -a /etc/apt/apt.conf.d/10-nocheckvalid
-        echo "APT::Get::AllowUnauthenticated true;" | tee -a /etc/apt/apt.conf.d/10-nocheckvalid
-        echo "Acquire::AllowInsecureRepositories True;" | tee -a /etc/apt/apt.conf.d/10-nocheckvalid
+        # echo "Acquire::Check-Valid-Until false;" | tee -a /etc/apt/apt.conf.d/10-nocheckvalid
+        # echo "APT::Get::AllowUnauthenticated true;" | tee -a /etc/apt/apt.conf.d/10-nocheckvalid
+        # echo "Acquire::AllowInsecureRepositories True;" | tee -a /etc/apt/apt.conf.d/10-nocheckvalid
         ;;
     sparc64)
         # there is no stable port
@@ -210,10 +214,10 @@ main() {
     # Use a single connection per url which is slower but should fix the
     # intermittent error: curl: (16) Error in the HTTP2 framing layer
     for url in \
-        'https://www.ports.debian.org/archive_'{2020,2021,2022,2023,2024,2025}.key \
-        'https://ftp-master.debian.org/keys/release-'{7,8,9,10,11,12}.asc \
-        'https://ftp-master.debian.org/keys/archive-key-'{8,9,10,11,12}-security.asc \
-        'https://ftp-master.debian.org/keys/archive-key-'{7.0,8,9,10,11,12}.asc; do
+        'https://www.ports.debian.org/archive_'{2020,2021,2022,2023,2024,2025,2026}.key \
+        'https://ftp-master.debian.org/keys/release-'{7,8,9,10,11,12,13}.asc \
+        'https://ftp-master.debian.org/keys/archive-key-'{8,9,10,11,12,13}-security.asc \
+        'https://ftp-master.debian.org/keys/archive-key-'{7.0,8,9,10,11,12,13}.asc; do
         curl --retry 3 -sSfL "$url" -O
     done
 
@@ -257,12 +261,13 @@ main() {
         ncurses-base"${ncurses}" \
         "zlib1g:${arch}"
 
-    if [[ "$arch" == "s390x" ]]; then
-        # The libc version on the current 22.04 ubuntu (2026-05-01) is 2.35, so 2.36
-        # from the snapshot should work
-        wget "https://snapshot.debian.org/archive/debian-security/${snapshot}/pool/updates/main/g/glibc/libc6_2.36-9%2Bdeb12u7_s390x.deb"
-        wget "https://snapshot.debian.org/archive/debian-security/${snapshot}/pool/updates/main/g/glibc/libc6-dbg_2.36-9%2Bdeb12u7_s390x.deb"
-    elif [[ "$arch" == "riscv64" ]]; then
+    # if [[ "$arch" == "s390x" ]]; then
+    #     # The libc version on the current 22.04 ubuntu (2026-05-01) is 2.35, so 2.36
+    #     # from the snapshot should work
+    #     # wget "https://snapshot.debian.org/archive/debian-security/${snapshot}/pool/updates/main/g/glibc/libc6_2.36-9%2Bdeb12u7_s390x.deb"
+    #     # wget "https://snapshot.debian.org/archive/debian-security/${snapshot}/pool/updates/main/g/glibc/libc6-dbg_2.36-9%2Bdeb12u7_s390x.deb"
+    # elif [[ "$arch" == "riscv64" ]]; then
+    if [[ "$arch" == "riscv64" ]]; then
         apt-get -d --no-install-recommends download \
             "libc6:${arch}" \
             "libc6-dbg:${arch}" \

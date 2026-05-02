@@ -1,4 +1,4 @@
-FROM ubuntu:20.04 AS cross-base
+FROM ubuntu:22.04 AS cross-base
 ENV DEBIAN_FRONTEND=noninteractive
 ARG CROSS_TARGET=aarch64-unknown-linux-gnu
 ARG VALGRIND_VERSION=3.27.0

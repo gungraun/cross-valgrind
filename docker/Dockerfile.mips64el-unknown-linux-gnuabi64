@@ -1,4 +1,4 @@
-FROM ubuntu:20.04 AS cross-base
+FROM ubuntu:22.04 AS cross-base
 ENV DEBIAN_FRONTEND=noninteractive
 ARG CROSS_TARGET=mips64el-unknown-linux-gnuabi64
 ARG VALGRIND_VERSION=3.27.0
