@@ -135,14 +135,11 @@ main() {
         ;;
     riscv64)
         kernel="${kversion}-riscv64"
-        local debsource="deb http://http.debian.net/debian/ trixie main"
-        debsource="${debsource}\ndeb http://security.debian.org/ trixie-security main"
         deps=(libcrypt1:"${arch}")
         ;;
     s390x)
-        arch=s390x
-        deps=(libcrypt1:"${arch}")
         kernel="${kversion}-s390x"
+        deps=(libcrypt1:"${arch}")
         ;;
     sparc64)
         # there is no stable port
@@ -207,8 +204,13 @@ main() {
         curl --retry 3 -sSfL "$url" -O
     done
 
+    mkdir -p /etc/apt/trusted.gpg.d
     for key in *.asc *.key; do
-        apt-key add "${key}"
+        if [[ "${key}" == *.asc ]]; then
+            gpg --dearmor < "${key}" > "/etc/apt/trusted.gpg.d/${key%.asc}.gpg"
+        else
+            gpg --dearmor < "${key}" > "/etc/apt/trusted.gpg.d/${key%.key}.gpg"
+        fi
         rm "${key}"
     done
 

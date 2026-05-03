@@ -81,7 +81,7 @@ RUN /slirp.sh
 ENV PKG_CONFIG_PATH=/usr/lib64/pkgconfig
 
 COPY qemu.sh /
-RUN /qemu.sh ppc64le
+RUN /qemu.sh ppc64
 
 RUN apt-get autopurge -y \
     && rm -rf /var/lib/apt/lists/*

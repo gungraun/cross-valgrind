@@ -63,7 +63,6 @@ install_packages \
     python3-sphinx \
     python3-sphinx-rtd-theme \
     python3-venv \
-    rustc-web \
     xsltproc \
     xz-utils \
     zlib1g-dev \
@@ -72,6 +71,9 @@ install_packages \
     libbz2-dev \
     libfuse3-dev \
     bzip2
+
+if_debian_ge 13 install_packages rustc
+if_debian_lt 13 install_packages rustc-web
 
 mkdir -p "$qemu_build_dir"
 cd "$qemu_build_dir"

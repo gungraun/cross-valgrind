@@ -195,6 +195,8 @@ esac
 
 if [[ -t 1 ]] && [[ -t 2 ]]; then
     tty_flag='-t'
+else
+    tty_flag='-T'
 fi
 
 # shellcheck disable=2086

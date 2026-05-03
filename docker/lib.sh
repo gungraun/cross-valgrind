@@ -59,9 +59,23 @@ if_debian_ge() {
         local ver
         ver="$(
             source /etc/os-release
-            echo $VERSION_ID
+            echo "$VERSION_ID"
         )"
         if dpkg --compare-versions "$ver" "ge" "$1"; then
+            shift
+            eval "${@}"
+        fi
+    fi
+}
+
+if_debian_lt() {
+    if grep -q -i debian /etc/os-release; then
+        local ver
+        ver="$(
+            source /etc/os-release
+            echo "$VERSION_ID"
+        )"
+        if dpkg --compare-versions "$ver" "lt" "$1"; then
             shift
             eval "${@}"
         fi
