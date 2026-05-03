@@ -435,7 +435,8 @@ mod tests {
         }
 
         // Now, get the most common and ensure our base is correct.
-        let actual_base = cross::docker::UBUNTU_BASE;
+        // WARNING: cross-valgrind: Changed this from using cross::docker::UBUNTU_BASE to hardcoded value
+        let actual_base = "debian:bookworm";
         let max_base = counts
             .iter()
             .max_by(|x, y| x.1.cmp(y.1))

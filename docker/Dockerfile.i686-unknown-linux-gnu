@@ -34,7 +34,7 @@ RUN /valgrind.sh
 RUN apt-get autopurge -y \
     && rm -rf /var/lib/apt/lists/*
 
-FROM common as dropbear
+FROM common AS dropbear
 
 ARG DROPBEAR_VERSION=2025.88
 
@@ -44,7 +44,7 @@ RUN /dropbear.sh i386
 RUN apt-get autopurge -y \
     && rm -rf /var/lib/apt/lists/*
 
-FROM common as util-linux
+FROM common AS util-linux
 
 ARG UTIL_LINUX_VERSION=2.41.2
 
@@ -54,7 +54,7 @@ RUN /util-linux.sh
 RUN apt-get autopurge -y \
     && rm -rf /var/lib/apt/lists/*
 
-FROM common as image
+FROM common AS image
 
 COPY --from=valgrind /valgrind /tmp/valgrind/
 COPY --from=util-linux /util-linux/usr/bin/setarch /tmp/util-linux/
@@ -67,7 +67,7 @@ RUN /linux-image.sh i686
 RUN apt-get autopurge -y \
     && rm -rf /var/lib/apt/lists/*
 
-FROM common as qemu
+FROM common AS qemu
 
 COPY --from=valgrind /valgrind/usr/include/valgrind /usr/include/valgrind/
 
@@ -86,7 +86,7 @@ RUN /qemu.sh i386
 RUN apt-get autopurge -y \
     && rm -rf /var/lib/apt/lists/*
 
-FROM common as runner
+FROM common AS runner
 
 COPY --from=dropbear /usr/bin/dbclient \
     /usr/bin/dropbearkey \
