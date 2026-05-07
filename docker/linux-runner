@@ -38,24 +38,25 @@ arch="${1}"
 shift
 
 if [[ -z "${CROSS_RUNNER}" ]]; then
-    CROSS_RUNNER=qemu-system
+    if is_native_binary "${arch}"; then
+        CROSS_RUNNER=native
+    else
+        CROSS_RUNNER=qemu-user
+    fi
 fi
 
 # Ensure that the correct prefix is set even if the user has cleared the env.
 # `@DEFAULT_QEMU_LD_PREFIX@` is replaced during image build.
 export QEMU_LD_PREFIX=${QEMU_LD_PREFIX:-@DEFAULT_QEMU_LD_PREFIX@}
 
+echo "${@}"
 qarch=$(qemu_arch "${arch}")
 case "${CROSS_RUNNER}" in
 native)
-    echo "Invalid runner: \"${CROSS_RUNNER}\""
-    echo "Currently only qemu-system is supported"
-    exit 1
+    exec "${@}"
     ;;
 qemu-user)
-    echo "Invalid runner: \"${CROSS_RUNNER}\""
-    echo "Currently only qemu-system is supported"
-    exit 1
+    exec "qemu-${qarch}" "${@}"
     ;;
 qemu-system)
     true
@@ -199,5 +200,7 @@ else
     tty_flag='-T'
 fi
 
-# shellcheck disable=2086
-exec dbclient "${tty_flag}" -p 10022 -y -y root@localhost ${CROSS_VALGRIND} "${@}"
+if [[ -n "${CROSS_VALGRIND}" || -n "$*" ]]; then
+    # shellcheck disable=2086
+    exec dbclient "${tty_flag}" -p 10022 -y -y root@localhost ${CROSS_VALGRIND} "${@}"
+fi

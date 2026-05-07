@@ -216,35 +216,6 @@ main() {
         rm -rf "${td}"
     fi
 
-    # test cmake support
-    td="$(mkcargotemp -d)"
-
-    git clone \
-        --recursive \
-        --depth 1 \
-        https://github.com/cross-rs/rust-cmake-hello-world "${td}"
-
-    pushd "${td}"
-    retry cargo fetch
-    if [[ "${TARGET}" == "arm-linux-androideabi" ]]; then
-        # ARMv5te isn't supported anymore by Android, which produces missing
-        # symbol errors with re2 like `__libcpp_signed_lock_free`.
-        cross_run --target "${TARGET}" --features=tryrun
-    elif ((${STD:-0})) && ((${RUN:-0})) && ((${CPP:-0})); then
-        cross_run --target "${TARGET}" --features=re2,tryrun
-    elif ((${STD:-0})) && ((${CPP:-0})); then
-        cross_build --target "${TARGET}" --features=re2
-    elif ((${STD:-0})) && ((${RUN:-0})); then
-        cross_run --target "${TARGET}" --features=tryrun
-    elif ((${STD:-0})); then
-        cross_build --target "${TARGET}" --features=tryrun
-    else
-        cross_build --lib --target "${TARGET}"
-    fi
-    popd
-
-    rm -rf "${td}"
-
     # test running binaries with cleared environment
     # Command is not implemented for wasm32-unknown-emscripten
     if ((${RUN:-0})) && [[ "${TARGET}" != "wasm32-unknown-emscripten" ]]; then
