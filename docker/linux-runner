@@ -49,8 +49,17 @@ fi
 # `@DEFAULT_QEMU_LD_PREFIX@` is replaced during image build.
 export QEMU_LD_PREFIX=${QEMU_LD_PREFIX:-@DEFAULT_QEMU_LD_PREFIX@}
 
+echo -n "linux-runner: args: "
 echo "${@}"
+
 qarch=$(qemu_arch "${arch}")
+case "$qarch" in
+ppc64le)
+    qarch=ppc64
+    ;;
+*) ;;
+esac
+
 case "${CROSS_RUNNER}" in
 native)
     exec "${@}"
