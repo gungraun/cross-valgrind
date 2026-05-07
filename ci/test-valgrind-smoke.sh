@@ -14,19 +14,28 @@ trap 'rm -rf "$td"' EXIT
 
 cd "$td"
 
-# Initialize a minimal Rust binary
-cargo init --bin --name hello
-
-# Build for the target
-"${CROSS[@]}" build --target "$TARGET"
+case "$TARGET" in
+mips64el)
+    cat <<EOF >Cross.toml
+[target.${TARGET}]
+build-std = true
+EOF
+    ;;
+esac
 
 # Create Cross.toml that runs the binary under valgrind inside the VM
-cat >Cross.toml <<EOF
+cat <<EOF >>Cross.toml
 [target.${TARGET}.env]
 passthrough = [
   "CROSS_VALGRIND=valgrind --tool=memcheck --error-exitcode=1 --leak-check=full"
 ]
 EOF
+
+# Initialize a minimal Rust binary
+cargo init --bin --name hello
+
+# Build for the target
+"${CROSS[@]}" build --target "$TARGET"
 
 # Run under valgrind -- this exercises the full system path:
 # cross → Docker → linux-runner → qemu-system → VM → dbclient → valgrind
