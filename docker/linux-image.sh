@@ -207,9 +207,9 @@ main() {
     mkdir -p /etc/apt/trusted.gpg.d
     for key in *.asc *.key; do
         if [[ "${key}" == *.asc ]]; then
-            gpg --dearmor < "${key}" > "/etc/apt/trusted.gpg.d/${key%.asc}.gpg"
+            gpg --dearmor <"${key}" >"/etc/apt/trusted.gpg.d/${key%.asc}.gpg"
         else
-            gpg --dearmor < "${key}" > "/etc/apt/trusted.gpg.d/${key%.key}.gpg"
+            gpg --dearmor <"${key}" >"/etc/apt/trusted.gpg.d/${key%.key}.gpg"
         fi
         rm "${key}"
     done
@@ -278,7 +278,7 @@ main() {
         # will prefer the system packages, which it can't find later.
         # removing these packages needs to occur after download via apt,
         # since apt-get relies on libgcc_s1 and libstdc++6.
-        dpkg -r --force-depends "${libgcc_packages[@]}"
+        dpkg --remove --force-all "${libgcc_packages[@]}"
     fi
     cd /qemu
 
