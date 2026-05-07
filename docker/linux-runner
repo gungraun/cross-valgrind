@@ -49,16 +49,10 @@ fi
 # `@DEFAULT_QEMU_LD_PREFIX@` is replaced during image build.
 export QEMU_LD_PREFIX=${QEMU_LD_PREFIX:-@DEFAULT_QEMU_LD_PREFIX@}
 
-echo -n "linux-runner: args: "
-echo "${@}"
+if_debug echo -n "linux-runner: args: "
+if_debug echo "${@}"
 
 qarch=$(qemu_arch "${arch}")
-case "$qarch" in
-ppc64le)
-    qarch=ppc64
-    ;;
-*) ;;
-esac
 
 case "${CROSS_RUNNER}" in
 native)
@@ -130,12 +124,14 @@ esac
 
     echo Booting QEMU virtual machine with "$n" cpus...
 
+    # Do not use shorthand -nic syntax. It fails for example with qemu-system-arm
     QEMU_CMD="qemu-system-${qarch} \
         -m ${memory} \
         -smp ${n} \
         -nographic \
         -monitor none \
-        -nic user,model=${drivernet},hostfwd=tcp::10022-:22,ipv6=off \
+        -netdev user,id=net0,hostfwd=tcp::10022-:22,ipv6=off \
+        -device ${drivernet},netdev=net0 \
         -kernel /qemu/kernel \
         -initrd /qemu/initrd.gz \
         ${opt} \

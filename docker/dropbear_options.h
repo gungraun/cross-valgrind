@@ -41,3 +41,5 @@ IMPORTANT: Some options will require "make clean" after changes */
 /* The default path. This will often get replaced by the shell */
 #define DEFAULT_PATH "/usr/sbin:/usr/bin:/sbin:/bin"
 #define DEFAULT_ROOT_PATH "/usr/sbin:/usr/bin:/sbin:/bin"
+
+

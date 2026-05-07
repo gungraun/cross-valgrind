@@ -95,19 +95,9 @@ is_native_binary() {
     host=$(host_architecture)
     target=$(normalize_arch "${arch}")
 
-    # FIXME: this is not comprehensive. add more compatible architectures.
-    case "${host}" in
-    amd64)
-        if [[ "${target}" == i386 ]] || [[ "${target}" == amd64 ]]; then
-            return 0
-        fi
-        ;;
-    *)
-        if [[ "${host}" == "${target}" ]]; then
-            return 0
-        fi
-        ;;
-    esac
+    if [[ "${host}" == "${target}" ]]; then
+        return 0
+    fi
 
     return 1
 }

@@ -6,154 +6,29 @@ set -eo pipefail
 # shellcheck disable=SC1091
 . lib.sh
 
-max_kernel_version() {
-    # kernel versions have the following format:
-    #   `5.10.0-10-$arch`, where the `$arch` may be optional.
-    local IFS=$'\n'
-    local -a versions
-    local major=0
-    local minor=0
-    local patch=0
-    local release=0
-    local index=0
-    local version
-    local x
-    local y
-    local z
-    local r
-    local is_larger
-
-    read -r -d '' -a versions <<<"$1"
-    for i in "${!versions[@]}"; do
-        version="${versions[$i]}"
-        x=$(echo "$version" | cut -d '.' -f 1)
-        y=$(echo "$version" | cut -d '.' -f 2)
-        z=$(echo "$version" | cut -d '.' -f 3 | cut -d '-' -f 1)
-        r=$(echo "$version" | cut -d '-' -f 2)
-        is_larger=
-
-        if [ "$x" -gt "$major" ]; then
-            is_larger=1
-        elif [ "$x" -eq "$major" ] && [ "$y" -gt "$minor" ]; then
-            is_larger=1
-        elif [ "$x" -eq "$major" ] && [ "$y" -eq "$minor" ] && [ "$z" -gt "$patch" ]; then
-            is_larger=1
-        elif [ "$x" -eq "$major" ] && [ "$y" -eq "$minor" ] && [ "$z" -eq "$patch" ] && [ "$r" -gt "$release" ]; then
-            is_larger=1
-        fi
-
-        if [ -n "$is_larger" ]; then
-            index="$i"
-            major="$x"
-            minor="$y"
-            patch="$z"
-            release="$r"
-        fi
-    done
-
-    echo "${versions[index]}"
-}
-
 main() {
-    # arch in the rust target
-    local arch="${1}" \
-        kversion='6.*'
-
-    local debsource
-    local -a deps
-    local kernel=
-    local libgcc="libgcc-s1"
-    local ncurses=
-    # local snapshot=
-
-    # select debian arch and kernel version
+    # select debian arch
+    local arch="$1"
     case "${arch}" in
     aarch64)
         arch=arm64
-        kernel="${kversion}-arm64"
-        deps=(libcrypt1:"${arch}")
         ;;
     armv7)
         arch=armhf
-        kernel="${kversion}-armmp"
-        deps=(libcrypt1:"${arch}")
         ;;
     i686)
         arch=i386
-        kernel="${kversion}-686"
-        deps=(libcrypt1:"${arch}")
-        ;;
-    mips)
-        # mips was discontinued in bullseye, so we have to use buster.
-        debsource="deb http://http.debian.net/debian/ buster main"
-        debsource="${debsource}\ndeb http://security.debian.org/ buster/updates main"
-        kernel='4.*-4kc-malta'
-        ncurses="=6.1*"
-        libgcc="libgcc1"
-        ;;
-    mipsel)
-        kernel="${kversion}-4kc-malta"
-        deps=(libcrypt1:"${arch}")
-        ;;
-    mips64el)
-        kernel="${kversion}-5kc-malta"
-        deps=(libcrypt1:"${arch}")
-        ;;
-    powerpc)
-        # The last supported release for 32-bit PowerPC is Debian 8 ("jessie")
-        # https://www.debian.org/ports/powerpc/
-        # there is no buster powerpc port, so we use jessie
-        # use a more recent kernel from backports
-        kversion='4.9.0-0.bpo.6'
-        kernel="${kversion}-powerpc"
-        debsource="deb http://archive.debian.org/debian jessie main"
-        debsource="${debsource}\ndeb http://archive.debian.org/debian jessie-backports main"
-        debsource="${debsource}\ndeb http://ftp.ports.debian.org/debian-ports unstable main"
-        debsource="${debsource}\ndeb http://ftp.ports.debian.org/debian-ports unreleased main"
-
-        # archive.debian.org Release files are expired.
-        echo "Acquire::Check-Valid-Until false;" | tee -a /etc/apt/apt.conf.d/10-nocheckvalid
-        echo "APT::Get::AllowUnauthenticated true;" | tee -a /etc/apt/apt.conf.d/10-nocheckvalid
-        echo "Acquire::AllowInsecureRepositories True;" | tee -a /etc/apt/apt.conf.d/10-nocheckvalid
-
-        deps=(libcrypt1:"${arch}")
         ;;
     powerpc64)
-        # there is no stable port
         arch=ppc64
-        # https://packages.debian.org/en/sid/linux-image-powerpc64
-        kernel="${kversion}-powerpc64"
-        debsource="deb http://ftp.ports.debian.org/debian-ports unstable main"
-        debsource="${debsource}\ndeb http://ftp.ports.debian.org/debian-ports unreleased main"
-        # sid version of dropbear requires these dependencies
-        deps=(libcrypt1:"${arch}")
         ;;
     powerpc64le)
         arch=ppc64el
-        kernel="${kversion}-powerpc64le"
-        deps=(libcrypt1:"${arch}")
-        ;;
-    riscv64)
-        kernel="${kversion}-riscv64"
-        deps=(libcrypt1:"${arch}")
-        ;;
-    s390x)
-        kernel="${kversion}-s390x"
-        deps=(libcrypt1:"${arch}")
-        ;;
-    sparc64)
-        # there is no stable port
-        # https://packages.debian.org/en/sid/linux-image-sparc64
-        kernel='6.*-sparc64'
-        debsource="deb http://ftp.ports.debian.org/debian-ports unstable main"
-        debsource="${debsource}\ndeb http://ftp.ports.debian.org/debian-ports unreleased main"
-        # sid version of dropbear requires these dependencies
-        deps=(libcrypt1:"${arch}")
         ;;
     x86_64)
         arch=amd64
-        kernel="${kversion}-amd64"
-        deps=(libcrypt1:"${arch}")
+        ;;
+    mips | mipsel | mips64el | powerpc | riscv64 | s390x | sparc64)
         ;;
     *)
         echo "Invalid arch: ${arch}"
@@ -161,131 +36,18 @@ main() {
         ;;
     esac
 
-    install_packages ca-certificates \
-        curl \
-        cpio \
-        sharutils \
-        gnupg
+    install_packages cpio \
+        sharutils
 
-    # conflicting versions of some packages will be installed already for the host platform,
-    # we need to remove the system installs later. since apt relies
-    # on these packages, we need to download them and reinstall
-    # using dpkg later, since we cannot redownload via apt.
-    local dpkg_arch
-    dpkg_arch=$(dpkg --print-architecture)
-    local libgcc_packages=("${libgcc}:${arch}" "libstdc++6:${arch}")
-    if [[ "${arch}" == "${dpkg_arch}" ]]; then
-        local libgcc_root=/qemu/libgcc
-        mkdir -p "${libgcc_root}"
-        pushd "${libgcc_root}"
-        apt-get -d --no-install-recommends download "${libgcc_packages[@]}"
-        popd
-    fi
+    local pkgdir="/tmp/packages"
 
-    if [[ -n "$debsource" ]]; then
-        mv /etc/apt/sources.list /etc/apt/sources.list.bak
-        mv /etc/apt/sources.list.d /etc/apt/sources.list.d.bak
-        echo -e "${debsource}" >/etc/apt/sources.list
-    fi
-
-    # Old ubuntu does not support --add-architecture, so we directly change multiarch file
-    if [ -f /etc/dpkg/dpkg.cfg.d/multiarch ]; then
-        cp /etc/dpkg/dpkg.cfg.d/multiarch /etc/dpkg/dpkg.cfg.d/multiarch.bak
-    fi
-    dpkg --add-architecture "${arch}" || echo "foreign-architecture ${arch}" >/etc/dpkg/dpkg.cfg.d/multiarch
-
-    # Use a single connection per url which is slower but should fix the
-    # intermittent error: curl: (16) Error in the HTTP2 framing layer
-    for url in \
-        'https://www.ports.debian.org/archive_'{2020,2021,2022,2023,2024,2025,2026}.key \
-        'https://ftp-master.debian.org/keys/release-'{7,8,9,10,11,12,13}.asc \
-        'https://ftp-master.debian.org/keys/archive-key-'{8,9,10,11,12,13}-security.asc \
-        'https://ftp-master.debian.org/keys/archive-key-'{7.0,8,9,10,11,12,13}.asc; do
-        curl --retry 3 -sSfL "$url" -O
-    done
-
-    mkdir -p /etc/apt/trusted.gpg.d
-    for key in *.asc *.key; do
-        if [[ "${key}" == *.asc ]]; then
-            gpg --dearmor <"${key}" >"/etc/apt/trusted.gpg.d/${key%.asc}.gpg"
-        else
-            gpg --dearmor <"${key}" >"/etc/apt/trusted.gpg.d/${key%.key}.gpg"
-        fi
-        rm "${key}"
-    done
-
-    # allow apt-get to retry downloads
-    echo 'APT::Acquire::Retries "3";' >/etc/apt/apt.conf.d/80-retries
-
-    # apt-get -o Acquire::Check-Valid-Until=false update
-    apt-get update
-
-    mkdir -p "/qemu/${arch}"
-    chmod 777 /qemu "/qemu/${arch}"
-
-    # Need to limit the kernel version and select the best version
-    # if we have a wildcard. This is because some matches, such as
-    # `linux-image-4.*-4kc-malta` can match more than 1 package,
-    # which will prevent further steps from working.
-    if [[ "$kernel" == *'*'* ]]; then
-        # Need an exact match for start and end, to avoid debug kernels.
-        # Afterwards, need to do a complex sort for the best kernel version,
-        # since the sort is non-trivial and must extract subcomponents.
-        packages=$(apt-cache search ^linux-image-"$kernel$" --names-only)
-        names=$(echo "$packages" | cut -d ' ' -f 1)
-        kversions="${names//linux-image-/}"
-        kernel=$(max_kernel_version "$kversions")
-    fi
-
-    cd "/qemu/${arch}"
-    apt-get -d --no-install-recommends download \
-        ${deps[@]+"${deps[@]}"} \
-        "busybox:${arch}" \
-        "libc6-dbg:${arch}" \
-        "libc6:${arch}" \
-        "libgmp10:${arch}" \
-        "libtomcrypt1:${arch}" \
-        "libtommath1:${arch}" \
-        "linux-image-${kernel}:${arch}" \
-        ncurses-base"${ncurses}" \
-        "zlib1g:${arch}"
-
-    if [[ "${arch}" != "${dpkg_arch}" ]]; then
-        apt-get -d --no-install-recommends download "${libgcc_packages[@]}"
-    else
-        # host arch has conflicting versions of the packages installed
-        # this prevents us from downloading them, so we need to
-        # simply grab the last version from the debian sources.
-        # we're search for a paragraph with:
-        #   Maintainer: Debian
-        # but not
-        #   Original-Maintainer: Debian
-        #
-        # then, we extract the version record and download **only**
-        # packages matching that specific version.
-        local version_info
-        local version_record
-        local version
-        for package in "${libgcc_packages[@]}"; do
-            version_info=$(apt-cache show "${package}")
-            version_record=$(echo "${version_info}" | perl -n00e 'print if /^Maintainer: Debian/m')
-            version=$(echo "${version_record}" | grep 'Version: ' | cut -d ' ' -f 2)
-            apt-get -d --no-install-recommends download "${package}=${version}"
-        done
-
-        # now, if we don't remove the system installs, qemu-system won't
-        # be able to find these libgcc packages after building, since it
-        # will prefer the system packages, which it can't find later.
-        # removing these packages needs to occur after download via apt,
-        # since apt-get relies on libgcc_s1 and libstdc++6.
-        dpkg --remove --force-all "${libgcc_packages[@]}"
-    fi
+    mkdir -p /qemu
     cd /qemu
 
-    # Install packages
+    # Install packages into rootfs
     root="root-${arch}"
     mkdir -p "${root}"/{bin,etc/dropbear,root,sys,dev,proc,sbin,tmp,usr/{bin,sbin},var/log}
-    for deb in "${arch}"/*deb; do
+    for deb in "${pkgdir}"/*.deb; do
         dpkg -x "${deb}" "${root}"/
     done
 
@@ -340,32 +102,6 @@ EOF
 root::0:0:root:/root:/bin/sh
 EOF
 
-    # spell-checker: disable
-    cat <<'EOF' | uudecode -o "$root/etc/dropbear/dropbear_rsa_host_key"
-begin 600 dropbear_rsa_host_key
-M````!W-S:"UR<V$````#`0`!```!`0"N!-<%K,3Z.!Z,OEMB2.N\O.$IWQ*F
-M#5%(_;(^2YKY_J_.RQW/7U@_MK&J#!Z0_\;EH#98ZW*E1\.<FF%P/*Y.W56-
-M31.'EJE`TN@=T5EC(8"Y%3'ZBYH)^WIVJ]S*G/_;#RH\_?S"U^1L_<<.F`O+
-MZVI?*]\KTDOT&QV0#B-M;"%_7:\>+3[X=QMH,B<HM$+0E[\B6*^!XKLR@V,K
-M)<V80HHK:_#;D]26XKN&CB./EZAC%4)78R!G""4HT@UK<5I4B^$/""`,?*\T
-M>*4$RYULV,V3X6]K:7@Q?80"#WXGGQZNFN6CZ7LTDX(F6J[\]F5<0`HEOF:Z
-MX;^53`L'4I/A```!``$L:$Z*#6<^3@+O%.[-#/5H+.C'3\#QQZN[1;J>L`8I
-MZ_&T'!"J'/Y+?R?55G:M^=]R*-&I3TOJYZA8@&H51ZOAF59'1_>>Z@?E4#)$
-MQU)X/RWH51ZB5KSDWJS:D'7GD(!?NAY`C'7\)I:_4)J")QBV/P"RJQGHG'%B
-M1BT2LE6676>`1K,0\NIMZTKQNB(IC+88<7#8%_-=P<&6<"9LH>60TSS?3?-C
-MN`T36YB/3^<(Q;`N1NT>I9EZS`BAC^-?.:,R\7EL"<4>7E=]^1]B\K9])AQU
-MBM\]M;4V(S(6KH-I.4[6>9E+@\UEM.J6:[2LUEEJDG:G:+:/EVF^Y75@(S$`
-M``"!`.O+KW=&*CBCHL"11&SVO4/K]$R-]7MV7,3RR)Q[X'0;6.?4JHW!3VR6
-M*FGBY--37ZD-+UV.8_+"$<?B"#&K$.[V)F7V2\UY!7(0FZ@A2`0ADDY*J-_B
-M4AU&.*GP#F/!I([:?E],.>6PH9)(/E.\G19#G0K`LRM?JWS!58&;D0C1````
-M@0"\[@NYWSTW(?Q@:_A*1Y3/AKYO5?S=0"<2>#V-AH6W-NCSDTSRP=2D79FS
-M"D?[;.)V>8'#9&I3"MU@+:2\Z%$0-MG0+J'(0>T1_C6?*C=4U0I$DI<=@D]1
-H_&DE8Y(OT%%EPG]!$H&5HX*),_D1A2\P=R.7G'`0L%YM-79Y"T">$0``
-`
-end
-EOF
-    # spell-checker: enable
-
     # dropbear complains when this file is missing
     touch "${root}/var/log/lastlog"
 
@@ -377,7 +113,7 @@ EOF
     cat <<EOF >"${root}/init"
 #!${busybox} sh
 
-set -e
+set -ex
 
 ${busybox} --install
 
@@ -432,6 +168,14 @@ EOF
         # Symlink dynamic loader to /lib/ld-linux-riscv64-lp64d.so.1
         mkdir -p "${root}/lib"
         ln -s /usr/lib/riscv64-linux-gnu/ld-linux-riscv64-lp64d.so.1 "${root}/lib/ld-linux-riscv64-lp64d.so.1"
+    elif [[ "${arch}" == "ppc64" ]]; then
+        # Fixing the error: Kernel panic - not syncing: No working init found.
+        mkdir -p "${root}/lib64"
+        ln -s /usr/lib/powerpc64-linux-gnu/ld64.so.1 "${root}/lib64/ld64.so.1"
+    elif [[ "${arch}" == "powerpc" ]]; then
+        # Fixing the error: Kernel panic - not syncing: No working init found.
+        mkdir -p "${root}/lib"
+        ln -s /usr/lib/powerpc-linux-gnu/ld.so.1 "${root}/lib/ld.so.1"
     fi
 
     chmod +x "${root}/init"
@@ -439,40 +183,8 @@ EOF
     find . | cpio --create --format='newc' --quiet | gzip >../initrd.gz
     cd -
 
-    if [[ "${arch}" == "${dpkg_arch}" ]]; then
-        # need to reinstall these packages, since basic utilities rely on them.
-        pushd "${libgcc_root}"
-        dpkg -i --force-depends "${libgcc_root}"/*.deb
-        popd
-        rm -rf "${libgcc_root}"
-    fi
-
     # Clean up
-    rm -rf "/qemu/${root}" "/qemu/${arch}"
-
-    if [[ -n "$debsource" ]]; then
-        mv -f /etc/apt/sources.list.bak /etc/apt/sources.list
-        mv -f /etc/apt/sources.list.d.bak /etc/apt/sources.list.d
-    fi
-
-    if [ -f /etc/dpkg/dpkg.cfg.d/multiarch.bak ]; then
-        mv /etc/dpkg/dpkg.cfg.d/multiarch.bak /etc/dpkg/dpkg.cfg.d/multiarch
-    fi
-    if [ -f /etc/apt/apt.conf.d/10-nocheckvalid ]; then
-        rm /etc/apt/apt.conf.d/10-nocheckvalid
-    fi
-
-    # can fail if arch is used (image arch, such as amd64 and/or i386)
-    dpkg --remove-architecture "${arch}" || true
-    apt-get update
-
-    # need to reinstall the removed libgcc packages, which are required for apt
-    if [[ "${arch}" == "${dpkg_arch}" ]]; then
-        apt-get install --no-install-recommends --assume-yes "${libgcc_packages[@]}"
-    fi
-
-    purge_packages
-
+    rm -rf "/qemu/${root}" "$pkgdir"
     ls -lh /qemu
 }
 

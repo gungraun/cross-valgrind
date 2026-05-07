@@ -7,7 +7,14 @@ ci_dir=$(realpath "${ci_dir}")
 # shellcheck disable=SC1091
 . "${ci_dir}"/shared.sh
 
+# Unset RUSTFLAGS
+export RUSTFLAGS=""
+
+export QEMU_STRACE=1
+
 CROSS=$(binary_path cross "${PROJECT_HOME}" debug)
+export CROSS=("${CROSS}")
+export CROSS_FLAGS="-v"
 
 td=$(mktemp -d)
 trap 'rm -rf "$td"' EXIT
@@ -15,7 +22,8 @@ trap 'rm -rf "$td"' EXIT
 cd "$td"
 
 case "$TARGET" in
-mips64el)
+mips64el-unknown-linux-gnuabi64 | mipsel-unknown-linux-gnu)
+    CROSS+=("+nightly")
     cat <<EOF >Cross.toml
 [target.${TARGET}]
 build-std = true

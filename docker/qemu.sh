@@ -18,7 +18,18 @@ set -ex
 . lib.sh
 
 version="${QEMU_VERSION:?A qemu version should be present}"
+
 qemu_arch="$1"
+user_arch="$qemu_arch"
+case "$qemu_arch" in
+ppc64le)
+    system_arch=ppc64
+    ;;
+*)
+    system_arch="$user_arch"
+    ;;
+esac
+
 qemu_build_dir="${HOME}/qemu"
 
 # These are the packages and libraries needed by the dynamically linked qemu.
@@ -124,7 +135,7 @@ cd build
     --enable-vvfat \
     --enable-zstd \
     --prefix=/usr \
-    --target-list="${qemu_arch}-softmmu,${qemu_arch}-linux-user"
+    --target-list="${system_arch}-softmmu,${user_arch}-linux-user"
 
 dest_dir=/qemu
 make -j"$(nproc)"
@@ -170,8 +181,8 @@ aarch64)
         ../pc-bios/descriptors/60-edk2-aarch64.json >"${firmware_dir}/60-edk2-aarch64.json"
     ;;
 mips | mipsel | mips64el) ;;
-ppc | ppc64)
-    cp ../pc-bios/{openbios-ppc,pnv-pnor.bin,qemu_vga.ndrv,skiboot.lid,slof.bin,u-boot*} \
+ppc | ppc64 | ppc64le)
+    cp ../pc-bios/{bamboo.dtb,canyonlands.dtb,openbios-ppc,pnv-pnor.bin,qemu_vga.ndrv,skiboot.lid,slof.bin,u-boot*} \
         "$biosdir"
     ;;
 s390x)
