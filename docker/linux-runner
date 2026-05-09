@@ -28,6 +28,38 @@ if_not_debug() {
     fi
 }
 
+run_dbclient() {
+    local max_attempts=3
+    local attempt=1
+    local log_lines=0
+    local status=0
+
+    while ((attempt <= max_attempts)); do
+        log_lines=$(wc -l <"${LOG}" 2>/dev/null || printf '0')
+
+        set +e
+        dbclient "${tty_flag}" -p 10022 -y -y root@localhost \
+            "PATH=/opt/valgrind/bin:/usr/sbin:/usr/bin:/sbin:/bin ${CROSS_VALGRIND} ${*}"
+        status=$?
+        set -e
+
+        if ((status == 0)); then
+            return 0
+        fi
+
+        if tail -n "+$((log_lines + 1))" "${LOG}" | grep -q 'Timeout before auth'; then
+            if ((attempt < max_attempts)); then
+                echo "Retrying dbclient after dropbear auth timeout (${attempt}/${max_attempts})..." >&2
+                sleep 1
+                attempt=$((attempt + 1))
+                continue
+            fi
+        fi
+
+        return "${status}"
+    done
+}
+
 if_debug set -x
 
 LOG=/tmp/qemu.log
@@ -135,8 +167,10 @@ esac
         -kernel /qemu/kernel \
         -initrd /qemu/initrd.gz \
         ${opt} \
-        -fsdev local,id=fs0,path=/target,security_model=mapped \
-        -device ${driver9p},fsdev=fs0,mount_tag=target"
+        -fsdev local,id=fs0,path=/opt,security_model=mapped \
+        -device ${driver9p},fsdev=fs0,mount_tag=valgrind \
+        -fsdev local,id=fs1,path=/target,security_model=mapped \
+        -device ${driver9p},fsdev=fs1,mount_tag=target"
 
     touch "${LOG}"
     if is_debug; then
@@ -207,5 +241,7 @@ fi
 
 if [[ -n "${CROSS_VALGRIND}" || -n "$*" ]]; then
     # shellcheck disable=2086
-    exec dbclient "${tty_flag}" -p 10022 -y -y root@localhost ${CROSS_VALGRIND} "${@}"
+    run_dbclient "$@"
 fi
+
+exit 0

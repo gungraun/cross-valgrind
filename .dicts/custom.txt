@@ -68,6 +68,7 @@ libclang
 libcrypt
 libcrypt1
 libcrypt_incdir
+libexec
 libfdt
 libgcc
 libglib2
@@ -88,6 +89,7 @@ logfile
 memcheck
 mips64el-unknown-linux-gnuabi64
 mipsel
+mktemp
 MSRV
 multiarch
 n

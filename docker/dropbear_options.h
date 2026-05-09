@@ -39,7 +39,8 @@ IMPORTANT: Some options will require "make clean" after changes */
 #define LOG_COMMANDS 0
 
 /* The default path. This will often get replaced by the shell */
-#define DEFAULT_PATH "/usr/sbin:/usr/bin:/sbin:/bin"
-#define DEFAULT_ROOT_PATH "/usr/sbin:/usr/bin:/sbin:/bin"
+#define DEFAULT_PATH "/opt/valgrind/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+#define DEFAULT_ROOT_PATH "/opt/valgrind/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 
-
+/* To recover faster from flaky auth timeouts especially in the github CI */
+#define AUTH_TIMEOUT 30

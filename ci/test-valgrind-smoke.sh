@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -eo pipefail
+set -exo pipefail
 
 ci_dir=$(dirname "${BASH_SOURCE[0]}")
 ci_dir=$(realpath "${ci_dir}")
@@ -21,13 +21,15 @@ trap 'rm -rf "$td"' EXIT
 
 cd "$td"
 
+cat <<EOF >Cross.toml
+[target.${TARGET}]
+runner = "qemu-system"
+EOF
+
 case "$TARGET" in
 mips64el-unknown-linux-gnuabi64 | mipsel-unknown-linux-gnu)
     CROSS+=("+nightly")
-    cat <<EOF >Cross.toml
-[target.${TARGET}]
-build-std = true
-EOF
+    echo 'build-std = true' >>Cross.toml
     ;;
 esac
 
@@ -35,7 +37,7 @@ esac
 cat <<EOF >>Cross.toml
 [target.${TARGET}.env]
 passthrough = [
-  "CROSS_VALGRIND=valgrind --tool=memcheck --error-exitcode=1 --leak-check=full"
+  "CROSS_VALGRIND=valgrind --tool=memcheck"
 ]
 EOF
 

@@ -21,12 +21,22 @@ RUN TARGET_ARCH=s390x /deny-debian-packages.sh \
     binutils \
     binutils-s390x-linux-gnu
 
+FROM common AS packages
+
+ARG CROSS_TARGET=s390x-unknown-linux-gnu
+COPY packages.sh lib.sh /
+RUN /packages.sh s390x
+
+RUN apt-get autopurge -y \
+    && rm -rf /var/lib/apt/lists/*
+
 FROM common AS valgrind
 
 ARG VALGRIND_VERSION=3.27.0
-ARG VALGRIND_CONFIGURE_ARGS="--prefix=/usr --enable-tls --enable-lto --enable-only64bit"
+ARG VALGRIND_CONFIGURE_ARGS="--prefix=/opt/valgrind --enable-tls --enable-lto --enable-only64bit"
 ARG VALGRIND_CONFIGURE_EXTRA_ARGS=""
 ARG VALGRIND_MAKE_EXTRA_ARGS=""
+ARG VALGRIND_CFLAGS=""
 
 COPY valgrind.sh /
 RUN /valgrind.sh
@@ -40,15 +50,6 @@ ARG ZLIB_VERSION=1.3.2
 
 COPY zlib.sh zlib-s390x-vx.patch /
 RUN /zlib.sh
-
-RUN apt-get autopurge -y \
-    && rm -rf /var/lib/apt/lists/*
-
-FROM common AS packages
-
-ARG CROSS_TARGET=s390x-unknown-linux-gnu
-COPY packages.sh lib.sh /
-RUN /packages.sh s390x
 
 RUN apt-get autopurge -y \
     && rm -rf /var/lib/apt/lists/*
@@ -78,7 +79,6 @@ RUN apt-get autopurge -y \
 
 FROM common AS image
 
-COPY --from=valgrind /valgrind /tmp/valgrind/
 COPY --from=packages /packages/busybox* \
     /packages/libc6* \
     /packages/libcrypt1* \
@@ -102,7 +102,7 @@ RUN apt-get autopurge -y \
 
 FROM common AS qemu
 
-COPY --from=valgrind /valgrind/usr/include/valgrind /usr/include/valgrind/
+COPY --from=valgrind /valgrind/opt/valgrind/include/valgrind /usr/include/valgrind/
 
 ARG SLIRP_VERSION=4.9.1
 ARG QEMU_VERSION=10.0.4
@@ -128,7 +128,8 @@ COPY --from=dropbear /usr/bin/dbclient \
 COPY --from=image /qemu /qemu/
 COPY --from=qemu /qemu /
 COPY --from=qemu /usr/lib64/libslirp.so.0.4.0 /usr/lib64/
-COPY --from=valgrind /valgrind/usr/include/valgrind /usr/include/valgrind/
+COPY --from=valgrind /valgrind/opt/valgrind/include/valgrind /usr/include/valgrind/
+COPY --from=valgrind /valgrind /
 
 RUN cd /usr/lib/ && \
     ln -s /usr/lib64/libslirp.so.0.4.0 . && \

@@ -63,8 +63,8 @@ tar xf "${asset}"
 
 cd ~/valgrind/"${asset_name}"
 
-if [[ -f /valgrind-mips64-sa_flags.patch ]]; then
-    patch -p1 </valgrind-mips64-sa_flags.patch
+if [[ -f /valgrind-mips-sa_flags.patch ]]; then
+    patch -p1 </valgrind-mips-sa_flags.patch
 fi
 
 dest_dir="/valgrind"

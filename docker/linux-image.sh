@@ -51,10 +51,6 @@ main() {
         dpkg -x "${deb}" "${root}"/
     done
 
-    # Install valgrind
-    cp -a /tmp/valgrind/* "${root}"/
-    rm -rf /tmp/valgrind
-
     # Install dropbear
     cp -a /tmp/dropbear/* "${root}"/
     rm -rf /tmp/dropbear
@@ -160,6 +156,9 @@ ip route add default via 10.0.2.2 dev eth0
 
 mkdir /target
 mount -t 9p -o trans=virtio target /target -oversion=9p2000.u || true
+
+mkdir /opt
+mount -t 9p -o trans=virtio valgrind /opt -oversion=9p2000.u || true
 
 exec dropbear -F -B
 EOF

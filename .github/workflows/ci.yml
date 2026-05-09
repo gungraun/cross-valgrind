@@ -223,14 +223,14 @@ jobs:
           BUILD_STD: ${{ matrix.build-std }}
           RUN: ${{ matrix.run }}
           RUNNERS: ${{ matrix.runners }}
-          CROSS_DEBUG: ${{ matrix.cross-debug }}
+          CROSS_DEBUG: "1"
         shell: bash
       - name: Valgrind Smoke Test
         if: steps.prepare-meta.outputs.has-image && steps.prepare-meta.outputs.test-variant == 'default'
         run: ./ci/test-valgrind-smoke.sh
         env:
           TARGET: ${{ matrix.target }}
-          CROSS_DEBUG: ${{ matrix.cross-debug }}
+          CROSS_DEBUG: "1"
         shell: bash
 
       - name: Login to GitHub Container Registry
