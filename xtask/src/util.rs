@@ -443,7 +443,7 @@ mod tests {
             .map(|(k, _)| k)
             .ok_or_else(|| eyre::eyre!("have no dockerfiles"))?;
 
-        if actual_base != max_base {
+        if !max_base.starts_with(actual_base) {
             eyre::bail!("most common base image is {max_base} but source code has {actual_base}")
         } else {
             Ok(())

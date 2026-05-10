@@ -7,7 +7,6 @@ set -euo pipefail
 . lib.sh
 
 main() {
-    # FIX: Update to the latest 3.x version
     local version=3.23.1
 
     install_packages curl

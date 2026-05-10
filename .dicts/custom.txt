@@ -35,11 +35,14 @@ DESTDIR
 devpts
 devtmpfs
 distros
+dockerfiles
 drivernet
 dropbear
 dropbearkey
+eabihf
 elif
 endgroup
+envfile
 errorred
 esac
 exitcode
@@ -48,6 +51,7 @@ fscache
 fsdev
 gfortran
 gnueabi
+gnueabihf
 has_buildkit
 hostfwd
 hostkey
@@ -92,6 +96,8 @@ mipsel
 mktemp
 MSRV
 multiarch
+musleabi
+musleabihf
 n
 narch
 netdev
@@ -113,6 +119,7 @@ pututxline
 qarch
 riscv
 rootfs
+rsplit_once
 runopts
 rustc
 RUSTFLAGS
@@ -125,11 +132,13 @@ subcomponents
 subshell
 sysfs
 TARGETARCH
+thumbv8m
 tmpfs
 tomli
 trixie
 tty_flag
 unimp
+unittests
 utmp
 utmpx
 VALGRIND_CFLAGS
@@ -144,6 +153,7 @@ wtmp
 wtmpx
 xsltproc
 xtask
+Zbuild
 zconf
 zlibincludes
 zstd

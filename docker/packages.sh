@@ -96,16 +96,10 @@ main() {
         kernel="7.*-powerpc"
         debsource="deb http://ftp.ports.debian.org/debian-ports unstable main"
         debsource="${debsource}\ndeb http://ftp.ports.debian.org/debian-ports unreleased main"
-
-        # archive.debian.org Release files are expired.
-        echo "Acquire::Check-Valid-Until false;" | tee -a /etc/apt/apt.conf.d/10-nocheckvalid
-        echo "APT::Get::AllowUnauthenticated true;" | tee -a /etc/apt/apt.conf.d/10-nocheckvalid
-        echo "Acquire::AllowInsecureRepositories True;" | tee -a /etc/apt/apt.conf.d/10-nocheckvalid
         ;;
     powerpc64)
         # there is no stable port
         arch=ppc64
-        # https://packages.debian.org/en/sid/linux-image-powerpc64
         kernel="7.*-powerpc64"
         debsource="deb http://ftp.ports.debian.org/debian-ports unstable main"
         debsource="${debsource}\ndeb http://ftp.ports.debian.org/debian-ports unreleased main"
@@ -120,13 +114,6 @@ main() {
     s390x)
         kernel="${kversion}-s390x"
         ;;
-    sparc64)
-        # there is no stable port
-        # https://packages.debian.org/en/sid/linux-image-sparc64
-        kernel='6.*-sparc64'
-        debsource="deb http://ftp.ports.debian.org/debian-ports unstable main"
-        debsource="${debsource}\ndeb http://ftp.ports.debian.org/debian-ports unreleased main"
-        ;;
     x86_64)
         arch=amd64
         kernel="${kversion}-amd64"
@@ -139,19 +126,6 @@ main() {
 
     install_packages sharutils \
         gnupg
-
-    # TODO: CLEANUP COMMENTED CODE
-    # # conflicting versions of some packages will be installed already for the host platform,
-    # # we need to remove the system installs later. since apt relies
-    # # on these packages, we need to download them and reinstall
-    # # using dpkg later, since we cannot redownload via apt.
-    # local dpkg_arch
-    # dpkg_arch=$(dpkg --print-architecture)
-    # local libgcc_packages=("${libgcc}:${arch}" "libstdc++6:${arch}")
-    # if [[ "${arch}" == "${dpkg_arch}" ]]; then
-    #     # host arch: download libgcc packages for later reinstall
-    #     apt-get -d --no-install-recommends download "${libgcc_packages[@]}"
-    # fi
 
     if [[ -n "$debsource" ]]; then
         [[ -e /etc/apt/sources.list ]] && mv /etc/apt/sources.list /etc/apt/sources.list.bak
@@ -252,43 +226,7 @@ main() {
             apt-get -d --no-install-recommends download "${package}=${version}"
         done
 
-        # TODO: CLEANUP
-        # now, if we don't remove the system installs, qemu-system won't
-        # be able to find these libgcc packages after building, since it
-        # will prefer the system packages, which it can't find later.
-        # removing these packages needs to occur after download via apt,
-        # since apt-get relies on libgcc_s1 and libstdc++6.
-        # dpkg --remove --force-all "${libgcc_packages[@]}"
     fi
-
-    # TODO: CLEANUP
-
-    # Write metadata for linux-image.sh
-    # TODO: CLEANUP commented code
-    #     cat >"${arch}/metadata" <<EOF
-    # ARCH=${arch}
-    # KERNEL_VERSION=${kernel}
-    # LIBGCC=${libgcc}
-    # NCURSES=${ncurses}
-    # EOF
-
-    # TODO: CLEANUP commented code
-    # # Clean up
-    # if [[ -n "$debsource" ]]; then
-    #     [[ -e /etc/apt/sources.list.bak ]] && mv -f /etc/apt/sources.list.bak /etc/apt/sources.list
-    #     mv -f /etc/apt/sources.list.d.bak /etc/apt/sources.list.d
-    # fi
-    #
-    # if [ -f /etc/dpkg/dpkg.cfg.d/multiarch.bak ]; then
-    #     mv /etc/dpkg/dpkg.cfg.d/multiarch.bak /etc/dpkg/dpkg.cfg.d/multiarch
-    # fi
-    # if [ -f /etc/apt/apt.conf.d/10-nocheckvalid ]; then
-    #     rm /etc/apt/apt.conf.d/10-nocheckvalid
-    # fi
-    #
-    # # can fail if arch is used (image arch, such as amd64 and/or i386)
-    # dpkg --remove-architecture "${arch}" || true
-    # apt-get update
 
     purge_packages
 }

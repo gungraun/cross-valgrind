@@ -1,4 +1,4 @@
-FROM debian:bookworm AS common
+FROM debian:bookworm-20250505 AS common
 
 ARG CROSS_TARGET=x86_64-unknown-linux-gnu
 ENV DEBIAN_FRONTEND=noninteractive
@@ -15,7 +15,7 @@ RUN apt-get update && apt-get install --assume-yes --no-install-recommends \
     g++-x86-64-linux-gnu \
     gfortran \
     libc6-dev-amd64-cross \
-    && rm -rf /usr/share/doc /usr/share/info /usr/share/locale /usr/share/man /var/lib/apt/lists/*
+    && rm -rf /usr/share/doc /usr/share/info /usr/share/locale /usr/share/man /usr/share/gtk-doc /var/lib/apt/lists/*
 
 COPY deny-debian-packages.sh /
 RUN TARGET_ARCH=amd64 /deny-debian-packages.sh \
@@ -139,8 +139,6 @@ RUN cd /usr/lib/ && \
 
 COPY linux-runner base-runner.sh /
 COPY toolchain.cmake /opt/toolchain.cmake
-
-RUN rm -rf /var/lib/apt/lists/*
 
 ENV CROSS_TARGET_RUNNER="/linux-runner x86_64"
 ENV CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_LINKER="${CROSS_TOOLCHAIN_PREFIX}gcc" \

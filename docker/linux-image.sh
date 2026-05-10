@@ -28,7 +28,7 @@ main() {
     x86_64)
         arch=amd64
         ;;
-    mips | mipsel | mips64el | powerpc | riscv64 | s390x | sparc64)
+    mips | mipsel | mips64el | powerpc | riscv64 | s390x)
         ;;
     *)
         echo "Invalid arch: ${arch}"

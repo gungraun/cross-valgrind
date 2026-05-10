@@ -1,4 +1,4 @@
-FROM debian:bookworm AS common
+FROM debian:bookworm-20250505 AS common
 
 ARG CROSS_TARGET=mips64el-unknown-linux-gnuabi64
 ENV DEBIAN_FRONTEND=noninteractive
@@ -15,7 +15,7 @@ RUN apt-get update && apt-get install --assume-yes --no-install-recommends \
     g++-mips64el-linux-gnuabi64 \
     gfortran-mips64el-linux-gnuabi64 \
     libc6-dev-mips64el-cross \
-    && rm -rf /usr/share/doc /usr/share/info /usr/share/locale /usr/share/man /var/lib/apt/lists/*
+    && rm -rf /usr/share/doc /usr/share/info /usr/share/locale /usr/share/man /usr/share/gtk-doc /var/lib/apt/lists/*
 
 COPY deny-debian-packages.sh /
 RUN TARGET_ARCH=mips64el /deny-debian-packages.sh \

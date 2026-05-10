@@ -1,4 +1,4 @@
-FROM debian:bookworm AS common
+FROM debian:bookworm-20250505 AS common
 
 ARG CROSS_TARGET=mipsel-unknown-linux-gnu
 ENV DEBIAN_FRONTEND=noninteractive
@@ -15,7 +15,7 @@ RUN apt-get update && apt-get install --assume-yes --no-install-recommends \
     g++-mipsel-linux-gnu \
     gfortran-mipsel-linux-gnu \
     libc6-dev-mipsel-cross \
-    && rm -rf /usr/share/doc /usr/share/info /usr/share/locale /usr/share/man /var/lib/apt/lists/*
+    && rm -rf /usr/share/doc /usr/share/info /usr/share/locale /usr/share/man /usr/share/gtk-doc /var/lib/apt/lists/*
 
 COPY deny-debian-packages.sh /
 RUN TARGET_ARCH=mipsel /deny-debian-packages.sh \

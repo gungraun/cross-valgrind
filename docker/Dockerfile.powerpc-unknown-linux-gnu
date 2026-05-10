@@ -1,4 +1,4 @@
-FROM debian:trixie AS common
+FROM debian:trixie-20260505 AS common
 
 ARG CROSS_TARGET=powerpc-unknown-linux-gnu
 ENV DEBIAN_FRONTEND=noninteractive
@@ -15,7 +15,7 @@ RUN apt-get update && apt-get install --assume-yes --no-install-recommends \
     g++-powerpc-linux-gnu \
     gfortran-powerpc-linux-gnu \
     libc6-dev-powerpc-cross \
-    && rm -rf /usr/share/doc /usr/share/info /usr/share/locale /usr/share/man /var/lib/apt/lists/*
+    && rm -rf /usr/share/doc /usr/share/info /usr/share/locale /usr/share/man /usr/share/gtk-doc /var/lib/apt/lists/*
 
 COPY deny-debian-packages.sh /
 RUN TARGET_ARCH=powerpc /deny-debian-packages.sh \
