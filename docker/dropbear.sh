@@ -12,6 +12,7 @@ dest_dir="/dropbear"
 toolchain="${CROSS_TOOLCHAIN_PREFIX%-}"
 
 # To be sure since we install dropbear statically on the host
+apt-get update
 apt-get purge -y dropbear
 
 if_debian install_packages \
