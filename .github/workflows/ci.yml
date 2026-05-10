@@ -16,6 +16,10 @@ on:
 
 name: CI
 
+permissions:
+  contents: read
+  packages: write
+
 env:
   CARGO_NET_RETRY: 3
   CARGO_HTTP_CHECK_REVOKE: false

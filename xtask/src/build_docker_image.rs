@@ -393,7 +393,7 @@ pub fn determine_image_name(
     ref_type: &str,
     ref_name: &str,
     is_latest: bool,
-    version: &str,
+    _version: &str,
 ) -> cross::Result<Vec<String>> {
     let mut tags = vec![];
     match (ref_type, ref_name) {
@@ -401,11 +401,8 @@ pub fn determine_image_name(
             let tag_version = ref_name
                 .strip_prefix('v')
                 .expect("tag name should start with v");
-            if version != tag_version {
-                eyre::bail!("git tag does not match package version.")
-            }
-            tags.push(target.image_name(repository, version));
-            // Check for unstable releases, tag stable releases as `latest`
+            tags.push(target.image_name(repository, tag_version));
+            // Tag stable image releases as `latest`.
             if is_latest {
                 tags.push(target.image_name(repository, "latest"))
             }
@@ -430,6 +427,51 @@ pub fn determine_image_name(
         _ => eyre::bail!("no valid choice to pick for image name"),
     }
     Ok(tags)
+}
+
+pub fn is_stable_image_release_tag(ref_name: &str) -> bool {
+    let Some(version) = ref_name.strip_prefix('v') else {
+        return false;
+    };
+
+    let mut segments = version.split('-');
+    let Some(base_version) = segments.next() else {
+        return false;
+    };
+    let Some(suffix) = segments.next() else {
+        return false;
+    };
+
+    let mut parts = base_version.split('.');
+    if !parts
+        .by_ref()
+        .take(3)
+        .all(|segment| !segment.is_empty() && segment.bytes().all(|byte| byte.is_ascii_digit()))
+        || parts.next().is_some()
+    {
+        return false;
+    }
+
+    segments.next().is_none() && !suffix.is_empty() && suffix.bytes().all(|byte| byte.is_ascii_digit())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn stable_image_release_tags() {
+        assert!(is_stable_image_release_tag("v3.27.0-1"));
+        assert!(is_stable_image_release_tag("v3.27.0-42"));
+
+        assert!(!is_stable_image_release_tag("v3.27.0"));
+        assert!(!is_stable_image_release_tag("v3.27.0-rc1"));
+        assert!(!is_stable_image_release_tag("v3.27.0-beta"));
+        assert!(!is_stable_image_release_tag("v3.27.0-alpha.1"));
+        assert!(!is_stable_image_release_tag("v3.27"));
+        assert!(!is_stable_image_release_tag("v3.27.0-"));
+        assert!(!is_stable_image_release_tag("3.27.0-1"));
+    }
 }
 
 pub fn job_summary(
