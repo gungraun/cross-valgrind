@@ -42,6 +42,18 @@ purge_packages() {
     fi
 }
 
+prune_docs() {
+    rm -rf /usr/share/doc \
+        /usr/share/info \
+        /usr/share/locale \
+        /usr/share/man
+}
+
+prune_cmake_docs() {
+    rm -rf /usr/local/doc \
+        /usr/local/man
+}
+
 if_centos() {
     if grep -q -i centos /etc/os-release; then
         eval "${@}"

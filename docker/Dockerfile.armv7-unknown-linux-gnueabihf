@@ -14,7 +14,8 @@ RUN /cmake.sh
 RUN apt-get update && apt-get install --assume-yes --no-install-recommends \
     g++-arm-linux-gnueabihf \
     gfortran-arm-linux-gnueabihf \
-    libc6-dev-armhf-cross
+    libc6-dev-armhf-cross \
+    && rm -rf /usr/share/doc /usr/share/info /usr/share/locale /usr/share/man /var/lib/apt/lists/*
 
 COPY deny-debian-packages.sh /
 RUN TARGET_ARCH=armhf /deny-debian-packages.sh \

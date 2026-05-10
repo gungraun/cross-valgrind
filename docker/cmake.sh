@@ -43,6 +43,7 @@ main() {
     sha256sum --check <<<"${cmake_sha256}  cmake.sh"
     sh cmake.sh --skip-license --prefix=/usr/local
     cmake --version
+    prune_cmake_docs
 
     popd
 

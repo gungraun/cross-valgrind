@@ -49,3 +49,5 @@ if_debian install_packages \
     util-linux \
     wget \
     zlib1g
+
+if_debian prune_docs

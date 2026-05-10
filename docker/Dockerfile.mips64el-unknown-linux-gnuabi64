@@ -14,7 +14,8 @@ RUN /cmake.sh
 RUN apt-get update && apt-get install --assume-yes --no-install-recommends \
     g++-mips64el-linux-gnuabi64 \
     gfortran-mips64el-linux-gnuabi64 \
-    libc6-dev-mips64el-cross
+    libc6-dev-mips64el-cross \
+    && rm -rf /usr/share/doc /usr/share/info /usr/share/locale /usr/share/man /var/lib/apt/lists/*
 
 COPY deny-debian-packages.sh /
 RUN TARGET_ARCH=mips64el /deny-debian-packages.sh \
@@ -157,4 +158,3 @@ ENV CARGO_TARGET_MIPS64EL_UNKNOWN_LINUX_GNUABI64_LINKER="${CROSS_TOOLCHAIN_PREFI
     CROSS_CMAKE_OBJECT_FLAGS="-ffunction-sections -fdata-sections -fPIC"
 
 RUN sed -e "s#@DEFAULT_QEMU_LD_PREFIX@#$QEMU_LD_PREFIX#g" -i /linux-runner
-

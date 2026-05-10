@@ -83,6 +83,8 @@ fi
 
 make -"j$(nproc)" BUILD_DOCS=none "${make_extra_args[@]}"
 make install DESTDIR="$dest_dir"
+rm -rf "$dest_dir"/opt/valgrind/share/doc \
+    "$dest_dir"/opt/valgrind/share/man
 
 cd
 rm -rf valgrind/
