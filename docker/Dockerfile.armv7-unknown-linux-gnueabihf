@@ -1,4 +1,4 @@
-FROM debian:bookworm-20250505 AS common
+FROM debian:bookworm-20260505 AS common
 
 ARG CROSS_TARGET=armv7-unknown-linux-gnueabihf
 ENV DEBIAN_FRONTEND=noninteractive
