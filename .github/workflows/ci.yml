@@ -112,6 +112,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           ref: ${{ inputs.checkout-ref }}
+          fetch-depth: 0
       - uses: ./.github/actions/setup-rust
       - run: cargo xtask ci-job check
         id: check
@@ -268,5 +269,4 @@ jobs:
           "$(jq -r 'all(.result as $result | (["success", "skipped"] | contains([$result])))' <<< "${needs}")"
         env:
           needs: ${{ toJson(needs) }}
-
 

@@ -12,6 +12,7 @@ bindgen
 binfmt_misc
 binutils
 blkid
+BoolishValueParser
 build_static_libattr
 build_static_libcap
 build_static_libmount
@@ -41,6 +42,7 @@ dockerfiles
 drivernet
 dropbear
 dropbearkey
+eabi
 eabihf
 elif
 endgroup
@@ -135,6 +137,7 @@ subcomponents
 subshell
 sysfs
 TARGETARCH
+thumbv6m
 thumbv8m
 tmpfs
 tomli
@@ -152,6 +155,7 @@ virtio
 virtio_mmio
 virtio_net
 vmlinu
+wildmatch
 wtmp
 wtmpx
 xsltproc

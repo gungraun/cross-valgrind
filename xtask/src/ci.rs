@@ -2,7 +2,10 @@ mod target_matrix;
 
 use crate::util::gha_output;
 use clap::Subcommand;
+use cross::shell::Verbosity;
 use cross::CargoMetadata;
+use cross::CommandExt;
+use std::process::Command;
 
 #[derive(Subcommand, Debug)]
 pub enum CiJob {
@@ -84,9 +87,7 @@ pub fn ci(args: CiJob, metadata: CargoMetadata) -> cross::Result<()> {
             }
         }
         CiJob::Check { ref_type, ref_name } => {
-            if ref_type == "tag"
-                && crate::build_docker_image::is_stable_image_release_tag(&ref_name)
-            {
+            if ref_type == "tag" && is_latest_release_tag(&ref_name)? {
                 gha_output("is-latest", "true")?
             }
         }
@@ -95,4 +96,47 @@ pub fn ci(args: CiJob, metadata: CargoMetadata) -> cross::Result<()> {
         }
     }
     Ok(())
+}
+
+fn is_latest_release_tag(ref_name: &str) -> cross::Result<bool> {
+    let Some(current) = crate::build_docker_image::parse_image_release_tag(ref_name) else {
+        return Ok(false);
+    };
+
+    let tags = Command::new("git")
+        .args(["tag", "--list", "v*"])
+        .run_and_get_stdout(&mut Verbosity::Quiet.into())?;
+
+    let latest = latest_release_tag(tags.lines());
+
+    Ok(latest.is_some_and(|(tag, parsed)| parsed == current && tag == ref_name))
+}
+
+fn latest_release_tag<'a>(
+    tags: impl Iterator<Item = &'a str>,
+) -> Option<(&'a str, crate::build_docker_image::ImageReleaseTag)> {
+    tags.filter_map(|tag| {
+        crate::build_docker_image::parse_image_release_tag(tag).map(|parsed| (tag, parsed))
+    })
+    .max_by_key(|(_, parsed)| *parsed)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn chooses_latest_release_tag() {
+        let latest = latest_release_tag(
+            [
+                "v3.27.0-alpha.2",
+                "v3.27.0-beta.1",
+                "v3.27.0-1",
+                "v3.27.1-alpha.1",
+            ]
+            .into_iter(),
+        );
+
+        assert_eq!(latest.map(|(tag, _)| tag), Some("v3.27.1-alpha.1"));
+    }
 }

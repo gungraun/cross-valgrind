@@ -429,32 +429,46 @@ pub fn determine_image_name(
     Ok(tags)
 }
 
-pub fn is_stable_image_release_tag(ref_name: &str) -> bool {
-    let Some(version) = ref_name.strip_prefix('v') else {
-        return false;
-    };
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum ReleasePhase {
+    Alpha(u64),
+    Beta(u64),
+    Stable(u64),
+}
 
-    let mut segments = version.split('-');
-    let Some(base_version) = segments.next() else {
-        return false;
-    };
-    let Some(suffix) = segments.next() else {
-        return false;
-    };
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub struct ImageReleaseTag {
+    pub major: u64,
+    pub minor: u64,
+    pub patch: u64,
+    pub phase: ReleasePhase,
+}
+
+pub fn parse_image_release_tag(ref_name: &str) -> Option<ImageReleaseTag> {
+    let version = ref_name.strip_prefix('v')?;
+    let (base_version, suffix) = version.split_once('-')?;
 
     let mut parts = base_version.split('.');
-    if !parts
-        .by_ref()
-        .take(3)
-        .all(|segment| !segment.is_empty() && segment.bytes().all(|byte| byte.is_ascii_digit()))
-        || parts.next().is_some()
-    {
-        return false;
+    let major = parts.next()?.parse().ok()?;
+    let minor = parts.next()?.parse().ok()?;
+    let patch = parts.next()?.parse().ok()?;
+    if parts.next().is_some() {
+        return None;
     }
 
-    segments.next().is_none()
-        && !suffix.is_empty()
-        && suffix.bytes().all(|byte| byte.is_ascii_digit())
+    let phase = match suffix.split_once('.') {
+        Some(("alpha", value)) => ReleasePhase::Alpha(value.parse().ok()?),
+        Some(("beta", value)) => ReleasePhase::Beta(value.parse().ok()?),
+        Some(_) => return None,
+        None => ReleasePhase::Stable(suffix.parse().ok()?),
+    };
+
+    Some(ImageReleaseTag {
+        major,
+        minor,
+        patch,
+        phase,
+    })
 }
 
 pub fn job_summary(
@@ -488,16 +502,53 @@ mod tests {
     use super::*;
 
     #[test]
-    fn stable_image_release_tags() {
-        assert!(is_stable_image_release_tag("v3.27.0-1"));
-        assert!(is_stable_image_release_tag("v3.27.0-42"));
+    fn parse_image_release_tags() {
+        assert_eq!(
+            parse_image_release_tag("v3.27.0-alpha.1"),
+            Some(ImageReleaseTag {
+                major: 3,
+                minor: 27,
+                patch: 0,
+                phase: ReleasePhase::Alpha(1),
+            })
+        );
+        assert_eq!(
+            parse_image_release_tag("v3.27.0-beta.2"),
+            Some(ImageReleaseTag {
+                major: 3,
+                minor: 27,
+                patch: 0,
+                phase: ReleasePhase::Beta(2),
+            })
+        );
+        assert_eq!(
+            parse_image_release_tag("v3.27.0-42"),
+            Some(ImageReleaseTag {
+                major: 3,
+                minor: 27,
+                patch: 0,
+                phase: ReleasePhase::Stable(42),
+            })
+        );
 
-        assert!(!is_stable_image_release_tag("v3.27.0"));
-        assert!(!is_stable_image_release_tag("v3.27.0-rc1"));
-        assert!(!is_stable_image_release_tag("v3.27.0-beta"));
-        assert!(!is_stable_image_release_tag("v3.27.0-alpha.1"));
-        assert!(!is_stable_image_release_tag("v3.27"));
-        assert!(!is_stable_image_release_tag("v3.27.0-"));
-        assert!(!is_stable_image_release_tag("3.27.0-1"));
+        assert_eq!(parse_image_release_tag("v3.27.0"), None);
+        assert_eq!(parse_image_release_tag("v3.27.0-rc1"), None);
+        assert_eq!(parse_image_release_tag("v3.27.0-alpha"), None);
+        assert_eq!(parse_image_release_tag("v3.27.0-beta"), None);
+        assert_eq!(parse_image_release_tag("v3.27"), None);
+        assert_eq!(parse_image_release_tag("v3.27.0-"), None);
+        assert_eq!(parse_image_release_tag("3.27.0-1"), None);
+    }
+
+    #[test]
+    fn image_release_tag_ordering() {
+        assert!(
+            parse_image_release_tag("v3.27.0-alpha.1") < parse_image_release_tag("v3.27.0-alpha.2")
+        );
+        assert!(
+            parse_image_release_tag("v3.27.0-alpha.9") < parse_image_release_tag("v3.27.0-beta.1")
+        );
+        assert!(parse_image_release_tag("v3.27.0-beta.9") < parse_image_release_tag("v3.27.0-1"));
+        assert!(parse_image_release_tag("v3.27.0-9") < parse_image_release_tag("v3.27.1-alpha.1"));
     }
 }

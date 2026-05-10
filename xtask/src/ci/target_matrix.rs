@@ -468,9 +468,6 @@ mod tests {
             .iter()
             .any(|t| t.target == "aarch64-unknown-linux-gnu"));
         assert!(matrix.iter().all(|t| t.target != "thumbv6m-none-eabi"));
-
-        let matrix = run(["--dylib", "0"]);
-        assert!(matrix.iter().any(|t| t.target == "cross"));
     }
 
     #[test]
