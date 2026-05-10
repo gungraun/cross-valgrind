@@ -13,6 +13,9 @@ on:
   merge_group:
   push:
     branches: [main, staging, trying, develop]
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+-*"
+
 
 name: CI
 
