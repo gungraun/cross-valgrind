@@ -19,6 +19,8 @@ build_static_pixman
 build_static_slirp
 buildkit_warning
 Buildx
+cachegrind
+callgrind
 canyonlands
 CFLAGS
 CHOST
@@ -52,6 +54,7 @@ fsdev
 gfortran
 gnueabi
 gnueabihf
+gungraun
 has_buildkit
 hostfwd
 hostkey
