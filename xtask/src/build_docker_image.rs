@@ -452,26 +452,9 @@ pub fn is_stable_image_release_tag(ref_name: &str) -> bool {
         return false;
     }
 
-    segments.next().is_none() && !suffix.is_empty() && suffix.bytes().all(|byte| byte.is_ascii_digit())
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn stable_image_release_tags() {
-        assert!(is_stable_image_release_tag("v3.27.0-1"));
-        assert!(is_stable_image_release_tag("v3.27.0-42"));
-
-        assert!(!is_stable_image_release_tag("v3.27.0"));
-        assert!(!is_stable_image_release_tag("v3.27.0-rc1"));
-        assert!(!is_stable_image_release_tag("v3.27.0-beta"));
-        assert!(!is_stable_image_release_tag("v3.27.0-alpha.1"));
-        assert!(!is_stable_image_release_tag("v3.27"));
-        assert!(!is_stable_image_release_tag("v3.27.0-"));
-        assert!(!is_stable_image_release_tag("3.27.0-1"));
-    }
+    segments.next().is_none()
+        && !suffix.is_empty()
+        && suffix.bytes().all(|byte| byte.is_ascii_digit())
 }
 
 pub fn job_summary(
@@ -498,4 +481,23 @@ pub fn job_summary(
         writeln!(summary, "| {target} |")?;
     }
     Ok(summary)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn stable_image_release_tags() {
+        assert!(is_stable_image_release_tag("v3.27.0-1"));
+        assert!(is_stable_image_release_tag("v3.27.0-42"));
+
+        assert!(!is_stable_image_release_tag("v3.27.0"));
+        assert!(!is_stable_image_release_tag("v3.27.0-rc1"));
+        assert!(!is_stable_image_release_tag("v3.27.0-beta"));
+        assert!(!is_stable_image_release_tag("v3.27.0-alpha.1"));
+        assert!(!is_stable_image_release_tag("v3.27"));
+        assert!(!is_stable_image_release_tag("v3.27.0-"));
+        assert!(!is_stable_image_release_tag("3.27.0-1"));
+    }
 }
