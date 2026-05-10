@@ -105,8 +105,3 @@ dylib = true
 std = true
 run = true
 runners = "qemu-system"
-
-[[target]]
-target = "cross"
-os = "ubuntu-latest"
-special = true
