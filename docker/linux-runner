@@ -70,7 +70,9 @@ arch="${1}"
 shift
 
 if [[ -z "${CROSS_RUNNER}" ]]; then
-    if is_native_binary "${arch}"; then
+    if [[ -n "${CROSS_VALGRIND}" ]]; then
+        CROSS_RUNNER=qemu-system
+    elif is_native_binary "${arch}"; then
         CROSS_RUNNER=native
     else
         CROSS_RUNNER=qemu-user
