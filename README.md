@@ -57,7 +57,9 @@ runner = "qemu-system"
 export CROSS_TARGET_AARCH64_UNKNOWN_LINUX_GNU_RUNNER=qemu-system
 ```
 
-or let `cross-valgrind` select it automatically when `CROSS_VALGRIND` is set.
+When `CROSS_VALGRIND` is present inside the container, `cross-valgrind` selects
+`qemu-system` automatically. With the `cross` CLI, configure `CROSS_VALGRIND`
+through `Cross.toml` passthrough.
 
 ## Quick Start
 
@@ -81,14 +83,27 @@ passthrough = [
 ]
 ```
 
+and run `cross`:
+
+```sh
+cross test --target aarch64-unknown-linux-gnu
+```
+
 ### Option 2: Environment Variables
 
 ```sh
 export CROSS_TARGET_AARCH64_UNKNOWN_LINUX_GNU_IMAGE="ghcr.io/gungraun/aarch64-unknown-linux-gnu:latest"
-export CROSS_VALGRIND="valgrind --tool=memcheck"
+export CROSS_VALGRIND='valgrind --tool=memcheck'
 ```
 
-Then use `cross` as usual:
+Then configure `CROSS_VALGRIND` passthrough in `Cross.toml`
+
+```toml
+[target.aarch64-unknown-linux-gnu.env]
+passthrough = ["CROSS_VALGRIND"]
+```
+
+and use `cross` as usual:
 
 ```sh
 cross test --target aarch64-unknown-linux-gnu
@@ -97,18 +112,12 @@ cross test --target aarch64-unknown-linux-gnu
 ## Using Valgrind
 
 Valgrind support uses `qemu-system`. The `qemu-user` runner is not supported
-for Valgrind execution. If `CROSS_VALGRIND` is set and no runner is configured,
-`cross-valgrind` selects `qemu-system` automatically.
+for Valgrind execution. If `CROSS_VALGRIND` is set inside the container and no
+runner is configured, `cross-valgrind` selects `qemu-system` automatically.
 
 You must set `CROSS_VALGRIND` to the Valgrind command and arguments that should
-run inside the guest system. For example:
-
-```sh
-export CROSS_VALGRIND="valgrind --tool=memcheck"
-```
-
-When set in the calling shell, `CROSS_VALGRIND` is passed through
-automatically.
+run inside the guest system. Specify it in `Cross.toml`
+`target.<triple>.env.passthrough` so it is forwarded into the container.
 
 A working `Cross.toml` example looks like this:
 
@@ -122,27 +131,13 @@ passthrough = [
 ]
 ```
 
-Use `passthrough` when you want to store the Valgrind command in `Cross.toml`
-instead of relying on the caller's shell environment.
-
-Or with shell configuration only:
+Set `CROSS_VALGRIND` to a specific value when you want to store the Valgrind
+command in `Cross.toml` instead of using the shell environment. Then run
+`cross`:
 
 ```sh
-export CROSS_TARGET_AARCH64_UNKNOWN_LINUX_GNU_IMAGE="ghcr.io/gungraun/aarch64-unknown-linux-gnu:latest"
-export CROSS_VALGRIND="valgrind --tool=memcheck"
-
 cross run --target aarch64-unknown-linux-gnu
 ```
-
-## Default Image Namespace via `CROSS_IMAGE`
-
-This option is discouraged. If you build or use a `cross` binary from this fork
-with `CROSS_IMAGE=ghcr.io/gungraun`, the default image resolution can point at
-this repository's image namespace without per-target overrides.
-
-`CROSS_IMAGE` only changes the image namespace. The default tag still comes
-from the binary's built-in `DEFAULT_IMAGE_VERSION`, which does not reliably
-match this repository's published image tags.
 
 ## Image Tags
 
