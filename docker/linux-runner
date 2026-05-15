@@ -171,8 +171,10 @@ esac
         ${opt} \
         -fsdev local,id=fs0,path=/opt,security_model=mapped \
         -device ${driver9p},fsdev=fs0,mount_tag=valgrind \
-        -fsdev local,id=fs1,path=/target,security_model=mapped \
-        -device ${driver9p},fsdev=fs1,mount_tag=target"
+        -fsdev local,id=fs1,path=/tmp,security_model=mapped \
+        -device ${driver9p},fsdev=fs1,mount_tag=tmp \
+        -fsdev local,id=fs2,path=/target,security_model=mapped \
+        -device ${driver9p},fsdev=fs2,mount_tag=target"
 
     touch "${LOG}"
     if is_debug; then

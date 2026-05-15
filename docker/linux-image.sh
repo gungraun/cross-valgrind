@@ -113,7 +113,7 @@ set -ex
 
 ${busybox} --install
 
-mkdir -p /dev /proc /run /sys /tmp
+mkdir -p /dev /proc /run /sys
 
 mount -t devtmpfs none /dev
 mount -t proc proc /proc
@@ -124,8 +124,6 @@ mount -t devpts none /dev/pts
 
 mount -t tmpfs none /run
 mkdir -p /run/lock
-
-mount -t tmpfs none /tmp
 
 mount
 
@@ -154,11 +152,14 @@ ip link set eth0 up
 
 ip route add default via 10.0.2.2 dev eth0
 
-mkdir /target
+mkdir -p /target
 mount -t 9p -o trans=virtio target /target -oversion=9p2000.u || true
 
-mkdir /opt
+mkdir -p /opt
 mount -t 9p -o trans=virtio valgrind /opt -oversion=9p2000.u || true
+
+mkdir -p /tmp
+mount -t 9p -o trans=virtio tmp /tmp -oversion=9p2000.u || true
 
 exec dropbear -F -B
 EOF
