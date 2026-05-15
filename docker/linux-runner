@@ -28,18 +28,50 @@ if_not_debug() {
     fi
 }
 
+quote() {
+    local value=$1
+    printf "'%s'" "${value//\'/\'\\\'\'}"
+}
+
 run_dbclient() {
+    local key value remote
+
     local max_attempts=3
     local attempt=1
     local log_lines=0
     local status=0
+    local envs=("PATH=/opt/valgrind/bin:/usr/sbin:/usr/bin:/sbin:/bin:/rust/bin")
+
+    for key in LD_LIBRARY_PATH RUST_TEST_THREADS TERM; do
+        local value="${!key}"
+        if [[ -n "$value" ]]; then
+            envs+=("${key}=${value}")
+        fi
+    done
+
+    while IFS='=' read -r key value; do
+        case "$key" in
+        CARGO_*) envs+=("${key}=${value}") ;;
+        esac
+    done < <(printenv)
+
+    remote="cd $(quote "$(pwd)") && env"
+
+    for env in "${envs[@]}"; do
+        remote+=" $(quote "$env")"
+    done
+
+    remote+=" ${CROSS_VALGRIND}"
+
+    for arg in "$@"; do
+        remote+=" $(quote "$arg")"
+    done
 
     while ((attempt <= max_attempts)); do
         log_lines=$(wc -l <"${LOG}" 2>/dev/null || printf '0')
 
         set +e
-        dbclient "${tty_flag}" -p 10022 -y -y root@localhost \
-            "PATH=/opt/valgrind/bin:/usr/sbin:/usr/bin:/sbin:/bin ${CROSS_VALGRIND} ${*}"
+        dbclient "${tty_flag}" -p 10022 -y -y root@localhost "$remote"
         status=$?
         set -e
 
@@ -107,41 +139,45 @@ esac
 
 n="$(nproc)"
 memory=1G
+opt=()
 driver9p="virtio-9p-pci"
 drivernet="virtio-net-pci"
+kernel_args=()
 
 # select qemu parameters
 case "${arch}" in
 aarch64 | aarch64_be)
     # 8 is the max number of cpu supported by qemu-aarch64
     n=$((n > 8 ? 8 : n))
-    opt="-machine virt -cpu cortex-a57"
+    opt=(-machine virt -cpu cortex-a57)
     ;;
 armv7hf)
-    opt="-machine virt"
+    opt=(-machine virt)
     driver9p="virtio-9p-device"
     drivernet="virtio-net-device"
     ;;
 i686)
-    opt="-append console=ttyS0"
+    kernel_args=(console=ttyS0)
     ;;
 mips | mipsel)
-    opt="-append nokaslr"
+    kernel_args=(nokaslr)
     n=1
     ;;
 mips64el)
-    opt="-append nokaslr -M malta -cpu MIPS64R2-generic"
+    opt=(-M malta -cpu MIPS64R2-generic)
+    kernel_args=(nokaslr)
     n=1
     ;;
 powerpc)
-    opt="-append console=ttyPZ0"
+    kernel_args=(console=ttyPZ0)
     n=1
     ;;
 riscv64)
-    opt="-machine virt"
+    opt=(-machine virt)
     ;;
 powerpc64 | powerpc64le)
-    opt="-append console=hvc0 --nodefaults -serial stdio"
+    opt=(--nodefaults -serial stdio)
+    kernel_args=(console=hvc0)
     ;;
 s390x)
     n=1
@@ -149,7 +185,7 @@ s390x)
     drivernet="virtio-net-ccw"
     ;;
 x86_64)
-    opt="-append console=ttyS0"
+    kernel_args=(console=ttyS0)
     ;;
 esac
 
@@ -159,34 +195,54 @@ esac
     echo Booting QEMU virtual machine with "$n" cpus...
 
     # Do not use shorthand -nic syntax. It fails for example with qemu-system-arm
-    QEMU_CMD="qemu-system-${qarch} \
-        -m ${memory} \
-        -smp ${n} \
-        -nographic \
-        -monitor none \
-        -netdev user,id=net0,hostfwd=tcp::10022-:22,ipv6=off \
-        -device ${drivernet},netdev=net0 \
-        -kernel /qemu/kernel \
-        -initrd /qemu/initrd.gz \
-        ${opt} \
-        -fsdev local,id=fs0,path=/opt,security_model=mapped \
-        -device ${driver9p},fsdev=fs0,mount_tag=valgrind \
-        -fsdev local,id=fs1,path=/tmp,security_model=mapped \
-        -device ${driver9p},fsdev=fs1,mount_tag=tmp \
-        -fsdev local,id=fs2,path=/target,security_model=mapped \
-        -device ${driver9p},fsdev=fs2,mount_tag=target"
+    QEMU_CMD=(
+        "qemu-system-${qarch}"
+        -m "${memory}"
+        -smp "${n}"
+        -nographic
+        -monitor none
+        -netdev "user,id=net0,hostfwd=tcp::10022-:22,ipv6=off"
+        -device "${drivernet},netdev=net0"
+        -kernel /qemu/kernel
+        -initrd /qemu/initrd.gz
+        "${opt[@]}"
+    )
+
+    counter=0
+    init_args=()
+    for mount in "project:/project" "tmp:/tmp" "cargo:/cargo" "rust:/rust" "target:/target" "opt:/opt"; do
+        IFS=: read -r tag path <<<"$mount"
+        if [[ -e "$path" ]]; then
+            QEMU_CMD+=(-fsdev "local,id=fs${counter},path=${path},security_model=mapped")
+            QEMU_CMD+=(-device "${driver9p},fsdev=fs${counter},mount_tag=$tag")
+
+            init_args+=(--mount "$mount")
+            counter=$((++counter))
+        fi
+
+    done
+
+    if ((${#init_args[@]})); then
+        kernel_args+=(--)
+        kernel_args+=("${init_args[@]}")
+    fi
+
+    if ((${#kernel_args[@]})); then
+        append="${kernel_args[*]}"
+        QEMU_CMD+=(-append "$append")
+    fi
 
     touch "${LOG}"
     if is_debug; then
         # Close fd 200 in child so it doesn't hold the flock lock
         (
             exec 200>&-
-            ${QEMU_CMD} 2>&1 | tee -a "${LOG}"
+            "${QEMU_CMD[@]}" 2>&1 | tee -a "${LOG}"
         ) &
     else
         (
             exec 200>&-
-            ${QEMU_CMD} >>"${LOG}" 2>&1
+            "${QEMU_CMD[@]}" >>"${LOG}" 2>&1
         ) &
     fi
     qemu_pid=$!
