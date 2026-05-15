@@ -94,8 +94,10 @@ run_dbclient() {
 
 if_debug set -x
 
-LOG=/tmp/qemu.log
-LOCK=/tmp/qemu.lock
+LOG=/target/tmp/qemu.log
+LOCK=/run/lock/qemu.lock
+
+mkdir -p "/target/tmp" "/run/lock"
 
 # arch in the rust target
 arch="${1}"
@@ -232,18 +234,11 @@ esac
         QEMU_CMD+=(-append "$append")
     fi
 
-    touch "${LOG}"
+    printf >"${LOG}"
     if is_debug; then
-        # Close fd 200 in child so it doesn't hold the flock lock
-        (
-            exec 200>&-
-            "${QEMU_CMD[@]}" 2>&1 | tee -a "${LOG}"
-        ) &
+        ("${QEMU_CMD[@]}" 2>&1 | tee -a "${LOG}") &
     else
-        (
-            exec 200>&-
-            "${QEMU_CMD[@]}" >>"${LOG}" 2>&1
-        ) &
+        ("${QEMU_CMD[@]}" >>"${LOG}" 2>&1) &
     fi
     qemu_pid=$!
 
