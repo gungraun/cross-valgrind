@@ -113,7 +113,7 @@ set -ex
 
 ${busybox} --install
 
-mkdir -p /dev /proc /run /sys /tmp
+mkdir -p /dev /proc /run /sys
 
 mount -t devtmpfs none /dev
 mount -t proc proc /proc
@@ -124,8 +124,6 @@ mount -t devpts none /dev/pts
 
 mount -t tmpfs none /run
 mkdir -p /run/lock
-
-mount -t tmpfs none /tmp
 
 mount
 
@@ -154,11 +152,25 @@ ip link set eth0 up
 
 ip route add default via 10.0.2.2 dev eth0
 
-mkdir /target
-mount -t 9p -o trans=virtio target /target -oversion=9p2000.u || true
-
-mkdir /opt
-mount -t 9p -o trans=virtio valgrind /opt -oversion=9p2000.u || true
+while [ -n "\$1" ]; do
+  case "\$1" in
+  -m|--mount)
+    printf '%s\n' "\$2" | {
+      IFS=: read -r tag dir
+      mkdir -p "\$dir"
+      mount -v -t 9p -o trans=virtio,version=9p2000.u "\$tag" "\$dir"
+    }
+    shift 2
+    ;;
+  console=*|nokaslr|rd_start=*|rd_size=*)
+    shift
+    ;;
+  *)
+    printf "init: Unrecognized argument: '%s'\n" "\$1"
+    exit 2
+    ;;
+  esac
+done
 
 exec dropbear -F -B
 EOF

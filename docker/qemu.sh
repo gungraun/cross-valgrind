@@ -93,6 +93,15 @@ wget "https://download.qemu.org/qemu-${version}.tar.xz"
 tar xJf "qemu-${version}.tar.xz"
 cd "qemu-${version}"
 
+# QEMU's MIPS Malta board stores the kernel command line in a fixed-size
+# YAMON-style PROM string slot. Upstream uses 256 bytes, and QEMU prepends
+# initrd metadata to that same string, leaving too little room for the dynamic
+# 9p mount arguments passed by linux-runner. Patch Malta to use a larger PROM
+# slot so mips/mipsel/mips64el guests receive the full command line.
+if [[ -f /qemu-malta-kernel-cmdline.patch ]]; then
+    git apply /qemu-malta-kernel-cmdline.patch
+fi
+
 mkdir -p build
 cd build
 
