@@ -1,14 +1,14 @@
 # adapted from https://github.com/actions/runner/issues/1478
 name: With post step
-description: 'Generic JS Action to execute a main command and set a command in a post step.'
+description: "Generic JS Action to execute a main command and set a command in a post step."
 inputs:
   main:
-    description: 'Main command/script.'
+    description: "Main command/script."
     required: true
   post:
-    description: 'Post command/script.'
+    description: "Post command/script."
     required: true
 runs:
-  using: 'node20'
-  main: 'main.js'
-  post: 'main.js'
+  using: "node24"
+  main: "main.js"
+  post: "main.js"
