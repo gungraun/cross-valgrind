@@ -37,7 +37,7 @@ esac
 cat <<EOF >>Cross.toml
 [target.${TARGET}.env]
 passthrough = [
-  "CROSS_VALGRIND=valgrind --tool=memcheck"
+  "CROSS_VALGRIND=valgrind --tool=memcheck --vgdb=no"
 ]
 EOF
 

@@ -154,13 +154,16 @@ ip route add default via 10.0.2.2 dev eth0
 
 while [ -n "\$1" ]; do
   case "\$1" in
-  --mount)
+  -m|--mount)
     printf '%s\n' "\$2" | {
       IFS=: read -r tag dir
       mkdir -p "\$dir"
       mount -v -t 9p -o trans=virtio,version=9p2000.u "\$tag" "\$dir"
     }
     shift 2
+    ;;
+  console=*|nokaslr|rd_start=*|rd_size=*)
+    shift
     ;;
   *)
     printf "init: Unrecognized argument: '%s'\n" "\$1"

@@ -33,6 +33,84 @@ quote() {
     printf "'%s'" "${value//\'/\'\\\'\'}"
 }
 
+rust_bin_path() {
+    printf '%s/bin\n' "${CROSS_RUST_SYSROOT:-/rust}"
+}
+
+project_mount() {
+    local mount=
+
+    # Mount the Docker filesystem that contains the cwd so dbclient can cd to
+    # the same absolute path inside the QEMU guest.
+    if command -v findmnt >/dev/null 2>&1; then
+        mount=$(findmnt --raw --noheadings --target "$(pwd)" --output TARGET 2>/dev/null || true)
+    fi
+
+    if [[ -z "$mount" || "$mount" == "/" ]]; then
+        mount=$(pwd)
+    fi
+
+    printf '%s\n' "$mount"
+}
+
+is_safe_docker_mount() {
+    local path=$1 fstype=$2
+
+    [[ -d "$path" ]] || return 1
+
+    case "$path" in
+    / | /dev | /dev/* | /proc | /proc/* | /sys | /sys/* | /run | /run/* | /etc/hostname | /etc/hosts | /etc/resolv.conf)
+        return 1
+        ;;
+    esac
+
+    case "$fstype" in
+    overlay | proc | sysfs | tmpfs | devtmpfs | devpts | cgroup | cgroup2 | mqueue | securityfs | debugfs | tracefs | fusectl | binfmt_misc)
+        return 1
+        ;;
+    esac
+
+    return 0
+}
+
+emit_mount_spec() {
+    local tag=$1 path=$2
+
+    [[ -n "$path" && -d "$path" ]] || return 0
+    # Deduplicate by guest path so semantic tags win over generated tags.
+    [[ -z "${mount_paths[$path]:-}" ]] || return 0
+
+    printf '%s:%s\n' "$tag" "$path"
+    mount_paths[$path]=1
+}
+
+collect_mount_specs() {
+    local path fstype tag index=0
+
+    declare -A mount_paths=()
+
+    # Add stable tags for paths the runner or cross commonly reference.
+    emit_mount_spec project "$(project_mount)"
+    emit_mount_spec target "${CARGO_TARGET_DIR:-/target}"
+    emit_mount_spec opt /opt
+    emit_mount_spec tmp /tmp
+    emit_mount_spec cargo "${CARGO_HOME:-/cargo}"
+    emit_mount_spec rust "${CROSS_RUST_SYSROOT:-/rust}"
+    emit_mount_spec xargo "${XARGO_HOME:-/xargo}"
+
+    if command -v findmnt >/dev/null 2>&1; then
+        # Keep nested Docker mounts: /cargo alone would not include a separate
+        # /cargo/bin mount, so forwarding both preserves Docker's view.
+        while read -r path fstype; do
+            if is_safe_docker_mount "$path" "$fstype"; then
+                tag="mount${index}"
+                emit_mount_spec "$tag" "$path"
+                index=$((index + 1))
+            fi
+        done < <(findmnt --raw --noheadings --output TARGET,FSTYPE 2>/dev/null || true)
+    fi
+}
+
 run_dbclient() {
     local key value remote
 
@@ -40,7 +118,7 @@ run_dbclient() {
     local attempt=1
     local log_lines=0
     local status=0
-    local envs=("PATH=/opt/valgrind/bin:/usr/sbin:/usr/bin:/sbin:/bin:/rust/bin")
+    local envs=("PATH=/opt/valgrind/bin:/usr/sbin:/usr/bin:/sbin:/bin:$(rust_bin_path)")
 
     for key in LD_LIBRARY_PATH RUST_TEST_THREADS TERM; do
         local value="${!key}"
@@ -51,6 +129,11 @@ run_dbclient() {
 
     while IFS='=' read -r key value; do
         case "$key" in
+        # Can subtly break the test/bench/run. They make sense on the host but
+        # not in the qemu image.
+        CARGO_TARGET_*_RUNNER | CARGO_TARGET_*_LINKER | CARGO_TARGET_*_RUSTFLAGS)
+            continue
+            ;;
         CARGO_*) envs+=("${key}=${value}") ;;
         esac
     done < <(printenv)
@@ -162,12 +245,16 @@ i686)
     kernel_args=(console=ttyS0)
     ;;
 mips | mipsel)
-    kernel_args=(nokaslr)
+    # Using the console=... here to force the placement of it before the init
+    # arguments. This option is added to the kernel cmdline but incorrectly
+    # after the init arguments, making it effectively part of the init
+    # arguments.
+    kernel_args=(nokaslr "console=ttyS0,38400n8r")
     n=1
     ;;
 mips64el)
     opt=(-M malta -cpu MIPS64R2-generic)
-    kernel_args=(nokaslr)
+    kernel_args=(nokaslr "console=ttyS0,38400n8r")
     n=1
     ;;
 powerpc)
@@ -212,15 +299,37 @@ esac
 
     counter=0
     init_args=()
-    for mount in "project:/project" "tmp:/tmp" "cargo:/cargo" "rust:/rust" "target:/target" "opt:/opt"; do
+    readarray -t mount_specs < <(collect_mount_specs)
+    for mount in "${mount_specs[@]}"; do
         IFS=: read -r tag path <<<"$mount"
-        if [[ -e "$path" ]]; then
-            QEMU_CMD+=(-fsdev "local,id=fs${counter},path=${path},security_model=mapped")
-            QEMU_CMD+=(-device "${driver9p},fsdev=fs${counter},mount_tag=$tag")
+        device="${driver9p},fsdev=fs${counter},mount_tag=$tag"
 
-            init_args+=(--mount "$mount")
-            counter=$((++counter))
-        fi
+        case "${arch}" in
+        mips | mipsel | mips64el)
+            # The Malta guest kernel only has IRQ mappings for PCI slots
+            # 0x12-0x15. VGA and virtio-net take 0x12 and 0x13, so pack 9p
+            # devices as functions on the remaining routed slots.
+            slot=$((0x14 + counter / 8))
+            function=$((counter % 8))
+            if ((slot > 0x15)); then
+                echo "Too many 9p mounts for MIPS Malta" >&2
+                exit 1
+            fi
+
+            printf -v addr '0x%x.%x' "${slot}" "${function}"
+            device+=",addr=${addr}"
+            if ((function == 0)); then
+                # See qemu-system-mips64el -device virtio-9p-pci,help
+                device+=",multifunction=on"
+            fi
+            ;;
+        esac
+
+        QEMU_CMD+=(-fsdev "local,id=fs${counter},path=${path},security_model=mapped")
+        QEMU_CMD+=(-device "${device}")
+
+        init_args+=(-m "$mount")
+        counter=$((++counter))
 
     done
 
@@ -234,7 +343,7 @@ esac
         QEMU_CMD+=(-append "$append")
     fi
 
-    printf >"${LOG}"
+    printf "" >"${LOG}"
     if is_debug; then
         ("${QEMU_CMD[@]}" 2>&1 | tee -a "${LOG}") &
     else

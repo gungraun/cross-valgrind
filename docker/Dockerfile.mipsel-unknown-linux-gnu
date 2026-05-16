@@ -114,7 +114,7 @@ RUN /slirp.sh
 # slirp installs the pkg-config files here
 ENV PKG_CONFIG_PATH=/usr/lib64/pkgconfig
 
-COPY qemu.sh /
+COPY qemu.sh qemu-malta-kernel-cmdline.patch /
 RUN /qemu.sh mipsel
 
 RUN apt-get autopurge -y \
