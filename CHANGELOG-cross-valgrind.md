@@ -1,3 +1,5 @@
+<!-- markdownlint-disable MD024 -->
+
 <!--
 Added for new features.
 Changed for changes in existing functionality.
@@ -19,6 +21,29 @@ and this project adheres to
 [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [3.27.0-alpha.2] - 2026-05-17
+
+### Added
+
+- Added an s390x Valgrind cachegrind patch to fall back from unusable QEMU ECAG
+  cache geometry and allow explicit cache settings.
+- Added callgrind cache simulation coverage to the Valgrind smoke test.
+  However, skip the callgrind smoke test on `mipsel-unknown-linux-gnu` because
+  it hangs forever likely due to a thread locking bug in Valgrind.
+
+### Changed
+
+- Added `/opt/bin` to the QEMU guest execution `PATH`.
+- Moved QEMU runner logs to `CARGO_TARGET_TMPDIR`, `/target/tmp`, or `/var/tmp`
+  depending on what is available.
+
+### Fixed
+
+- Fixed Valgrind `vgdb` startup failures caused by `/tmp` being mounted through
+  9p. `/tmp` is now tmpfs inside the QEMU guest and host `/tmp` is no longer
+  forwarded as a 9p mount. This also fixes other binaries that rely on shared
+  mmap.
 
 ## [3.27.0-alpha.1] - 2026-05-16
 

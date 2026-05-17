@@ -46,6 +46,7 @@ dropbear
 dropbearkey
 eabi
 eabihf
+ECAG
 elif
 endgroup
 envfile
