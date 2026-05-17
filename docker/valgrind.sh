@@ -67,6 +67,10 @@ if [[ -f /valgrind-mips-sa_flags.patch ]]; then
     patch -p1 </valgrind-mips-sa_flags.patch
 fi
 
+if [[ -f /valgrind-s390x-cachegrind.patch ]]; then
+    patch -p1 </valgrind-s390x-cachegrind.patch
+fi
+
 dest_dir="/valgrind"
 mkdir -p "$dest_dir"
 

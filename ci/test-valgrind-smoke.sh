@@ -37,7 +37,7 @@ esac
 cat <<EOF >>Cross.toml
 [target.${TARGET}.env]
 passthrough = [
-  "CROSS_VALGRIND=valgrind --tool=memcheck --vgdb=no"
+  "CROSS_VALGRIND"
 ]
 EOF
 
@@ -47,8 +47,17 @@ cargo init --bin --name hello
 # Build for the target
 "${CROSS[@]}" build --target "$TARGET"
 
-# Run under valgrind -- this exercises the full system path:
+# Run under memcheck -- this exercises the full system path:
 # cross → Docker → linux-runner → qemu-system → VM → dbclient → valgrind
+export CROSS_VALGRIND="valgrind --tool=memcheck --vgdb=no"
+"${CROSS[@]}" run --target "$TARGET"
+
+# Run under callgrind with cache simulation with --cache-sim
+# and explicit cache settings. This covers the s390x fallback path
+# for QEMU systems that expose unusable ECAG cache geometry.
+export CROSS_VALGRIND="valgrind --tool=callgrind --vgdb=no --cache-sim=yes \
+--I1=32768,8,64 --D1=32768,8,64 --LL=8388608,16,64 \
+--callgrind-out-file=callgrind.out"
 "${CROSS[@]}" run --target "$TARGET"
 
 echo "Valgrind smoke test passed for $TARGET"
