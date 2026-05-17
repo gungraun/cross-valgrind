@@ -55,9 +55,19 @@ export CROSS_VALGRIND="valgrind --tool=memcheck --vgdb=no"
 # Run under callgrind with cache simulation with --cache-sim
 # and explicit cache settings. This covers the s390x fallback path
 # for QEMU systems that expose unusable ECAG cache geometry.
+
 export CROSS_VALGRIND="valgrind --tool=callgrind --vgdb=no --cache-sim=yes \
 --I1=32768,8,64 --D1=32768,8,64 --LL=8388608,16,64 \
 --callgrind-out-file=callgrind.out"
-"${CROSS[@]}" run --target "$TARGET"
+
+case "$TARGET" in
+# Callgrind hangs forever on this target.
+mipsel-unknown-linux-gnu)
+    echo "Skipping callgrind test for ${TARGET}"
+    ;;
+*)
+    "${CROSS[@]}" run --target "$TARGET"
+    ;;
+esac
 
 echo "Valgrind smoke test passed for $TARGET"
