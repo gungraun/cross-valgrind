@@ -59,7 +59,7 @@ is_safe_docker_mount() {
     [[ -d "$path" ]] || return 1
 
     case "$path" in
-    / | /dev | /dev/* | /proc | /proc/* | /sys | /sys/* | /run | /run/* | /etc/hostname | /etc/hosts | /etc/resolv.conf)
+    / | /dev | /dev/* | /tmp | /proc | /proc/* | /sys | /sys/* | /run | /run/* | /etc/hostname | /etc/hosts | /etc/resolv.conf)
         return 1
         ;;
     esac
@@ -93,7 +93,7 @@ collect_mount_specs() {
     emit_mount_spec project "$(project_mount)"
     emit_mount_spec target "${CARGO_TARGET_DIR:-/target}"
     emit_mount_spec opt /opt
-    emit_mount_spec tmp /tmp
+    emit_mount_spec tmp "$TMPDIR"
     emit_mount_spec cargo "${CARGO_HOME:-/cargo}"
     emit_mount_spec rust "${CROSS_RUST_SYSROOT:-/rust}"
     emit_mount_spec xargo "${XARGO_HOME:-/xargo}"
@@ -118,7 +118,7 @@ run_dbclient() {
     local attempt=1
     local log_lines=0
     local status=0
-    local envs=("PATH=/opt/valgrind/bin:/usr/sbin:/usr/bin:/sbin:/bin:$(rust_bin_path)")
+    local envs=("PATH=/opt/bin:/opt/valgrind/bin:/usr/sbin:/usr/bin:/sbin:/bin:$(rust_bin_path)")
 
     for key in LD_LIBRARY_PATH RUST_TEST_THREADS TERM; do
         local value="${!key}"
@@ -177,10 +177,19 @@ run_dbclient() {
 
 if_debug set -x
 
-LOG=/target/tmp/qemu.log
-LOCK=/run/lock/qemu.lock
+if [[ -n "$CARGO_TARGET_TMPDIR" ]]; then
+    LOG_DIR="$CARGO_TARGET_TMPDIR"
+elif [[ -e /target ]]; then
+    LOG_DIR=/target/tmp
+else
+    LOG_DIR=/var/tmp
+fi
+LOG="${LOG_DIR}/qemu.log"
 
-mkdir -p "/target/tmp" "/run/lock"
+LOCK_DIR=/run/lock
+LOCK=${LOCK_DIR}/qemu.lock
+
+mkdir -p "$LOG_DIR" "$LOCK_DIR" "$TMPDIR"
 
 # arch in the rust target
 arch="${1}"
