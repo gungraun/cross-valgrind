@@ -189,7 +189,7 @@ jobs:
       - name: Docker Meta
         if: steps.prepare-meta.outputs.has-image
         id: docker-meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: |
             name=${{ steps.prepare-meta.outputs.image }}
