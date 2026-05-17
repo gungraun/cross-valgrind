@@ -39,7 +39,7 @@ ARG VALGRIND_CONFIGURE_EXTRA_ARGS=""
 ARG VALGRIND_MAKE_EXTRA_ARGS=""
 ARG VALGRIND_CFLAGS=""
 
-COPY valgrind.sh /
+COPY valgrind.sh valgrind-s390x-cachegrind.patch /
 RUN /valgrind.sh
 
 RUN apt-get autopurge -y \

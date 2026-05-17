@@ -1,0 +1,103 @@
+diff --git a/cachegrind/cg_arch.c b/cachegrind/cg_arch.c
+index ea95aa7f1..086a1fa10 100644
+--- a/cachegrind/cg_arch.c
++++ b/cachegrind/cg_arch.c
+@@ -296,14 +296,16 @@ void VG_(post_clo_init_configure_caches)(cache_t* I1c,
+    // architecture).
+    configure_caches( I1c, D1c, LLc, all_caches_clo_defined );
+ 
+-   maybe_tweak_LLc( LLc );
++   if (!DEFINED(clo_LLc)) {
++      maybe_tweak_LLc( LLc );
++   }
+ 
+    // Check the default/auto-detected values.
+    // Allow the user to override invalid auto-detected caches
+    // with command line.
+-   check_cache_or_override ("I1", I1c, DEFINED(clo_I1c));
+-   check_cache_or_override ("D1", D1c, DEFINED(clo_D1c));
+-   check_cache_or_override ("LL", LLc, DEFINED(clo_LLc));
++   if (!DEFINED(clo_I1c)) { check_cache_or_override ("I1", I1c, False); }
++   if (!DEFINED(clo_D1c)) { check_cache_or_override ("D1", D1c, False); }
++   if (!DEFINED(clo_LLc)) { check_cache_or_override ("LL", LLc, False); }
+ 
+    // Then replace with any defined on the command line.  (Already checked in
+    // VG(str_clo_cache_opt)().)
+@@ -436,9 +438,12 @@ configure_caches(cache_t *I1c, cache_t *D1c, cache_t *LLc,
+ 
+ #elif defined(VGA_s390x)
+ 
+-   // Should never get here as the min. required machine model can
+-   // query cache information via the ECAG insn.
+-   tl_assert(0);
++   // Default cache configuration is z10-EC (Source: ECAG insn).  Keep this
++   // fallback for virtual machines that expose ECAG but return unusable cache
++   // geometry.
++   *I1c = (cache_t) {    65536,  4, 256 };
++   *D1c = (cache_t) {   131072,  8, 256 };
++   *LLc = (cache_t) { 50331648, 24, 256 };
+ 
+ #elif defined(VGA_mips32) || defined(VGA_nanomips)
+ 
+diff --git a/coregrind/m_cache.c b/coregrind/m_cache.c
+index c0ec59b19..f930837ef 100644
+--- a/coregrind/m_cache.c
++++ b/coregrind/m_cache.c
+@@ -607,12 +607,31 @@ get_cache(UInt level, VexCacheKind kind)
+    return VEX_CACHE_INIT(kind, level + 1, size, line_size, assoc);
+ }
+ 
++static Bool
++cache_values_are_sensible(const VexCache *cache)
++{
++   if (cache->sizeB == 0 || cache->line_sizeB == 0 || cache->assoc == 0)
++      return False;
++
++   if (cache->sizeB <= cache->line_sizeB)
++      return False;
++
++   if (cache->assoc > cache->sizeB / cache->line_sizeB)
++      return False;
++
++   if (VG_(log2)(cache->line_sizeB) == -1)
++      return False;
++
++   return True;
++}
++
+ static Bool
+ get_cache_info(VexArchInfo *vai)
+ {
+    VexCacheInfo *ci = &vai->hwcache_info;
+ 
+    ci->icaches_maintain_coherence = True;
++   ci->caches = NULL;
+ 
+    UInt level, cache_kind, info, i;
+    ULong topology = ecag(0, 0, 0);   // get summary
+@@ -636,6 +655,9 @@ get_cache_info(VexArchInfo *vai)
+       }
+    }
+ 
++   if (ci->num_caches == 0)
++      return False;
++
+    ci->caches = VG_(malloc)("m_cache", ci->num_caches * sizeof *ci->caches);
+ 
+    i = 0;
+@@ -661,6 +683,15 @@ get_cache_info(VexArchInfo *vai)
+          break;
+       }
+    }
++
++   for (i = 0; i < ci->num_caches; i++) {
++      if (!cache_values_are_sensible(&ci->caches[i])) {
++         VG_(debugLog)(1, "cache",
++                       "warning: s390x ECAG cache values are not sensible\n");
++         return False;
++      }
++   }
++
+    return True;
+ }
+ 
