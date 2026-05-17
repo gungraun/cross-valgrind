@@ -113,11 +113,12 @@ set -ex
 
 ${busybox} --install
 
-mkdir -p /dev /proc /run /sys
+mkdir -p /dev /proc /run /sys /tmp
 
 mount -t devtmpfs none /dev
 mount -t proc proc /proc
 mount -t sysfs sys /sys
+mount -t tmpfs none /tmp
 
 mkdir -p /dev/pts
 mount -t devpts none /dev/pts
