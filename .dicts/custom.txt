@@ -104,6 +104,7 @@ memcheck
 mips64el-unknown-linux-gnuabi64
 mipsel
 mktemp
+mmap
 mqueue
 MSRV
 multiarch
