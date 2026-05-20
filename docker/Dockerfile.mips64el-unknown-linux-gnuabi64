@@ -1,4 +1,4 @@
-FROM debian:bookworm-20260505 AS common
+FROM debian:bookworm-20260518 AS common
 
 ARG CROSS_TARGET=mips64el-unknown-linux-gnuabi64
 ENV DEBIAN_FRONTEND=noninteractive
