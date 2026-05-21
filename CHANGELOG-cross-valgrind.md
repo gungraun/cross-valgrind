@@ -22,6 +22,12 @@ and this project adheres to
 
 ## [Unreleased]
 
+## [3.27.1-alpha.0] - 2026-05-21
+
+### Changed
+
+- Bump valgrind version from 3.27.0 to 3.27.1
+
 ## [3.27.0-alpha.2] - 2026-05-17
 
 ### Added

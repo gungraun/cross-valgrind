@@ -146,7 +146,7 @@ This repository publishes a small set of tags.
 - `main`: image built from the `main` branch
 - `edge`: additional branch-build tag as produced by the current tagging logic
 - `latest`: most recent stable image release
-- `3.27.0-1`: stable image release tag derived from the git tags `v3.27.0-1`
+- `3.27.1-alpha.0`: image release tag derived from the git tags `v3.27.1-alpha.0`
 
 Examples:
 
@@ -154,7 +154,7 @@ Examples:
 ghcr.io/gungraun/aarch64-unknown-linux-gnu:main
 ghcr.io/gungraun/aarch64-unknown-linux-gnu:edge
 ghcr.io/gungraun/aarch64-unknown-linux-gnu:latest
-ghcr.io/gungraun/aarch64-unknown-linux-gnu:3.27.0-1
+ghcr.io/gungraun/aarch64-unknown-linux-gnu:3.27.1-alpha.0
 ```
 
 ## Supported Targets
