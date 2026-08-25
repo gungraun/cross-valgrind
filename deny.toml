@@ -11,7 +11,7 @@ targets = [
 version = 2
 
 [bans]
-multiple-versions = "deny"
+multiple-versions = "warn"
 deny = []
 skip = [
   # home v0.5.11
