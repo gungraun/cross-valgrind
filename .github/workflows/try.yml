@@ -6,6 +6,9 @@ jobs:
   acknowledge:
     runs-on: ubuntu-latest
     if: github.event.issue.pull_request && (github.event.comment.author_association == 'MEMBER' || github.event.comment.author_association == 'OWNER') && (contains(toJson(github.event.comment.body), '\n/ci try') || startsWith(github.event.comment.body, '/ci try'))
+    permissions:
+      contents: read
+      pull-requests: write
     steps:
       - uses: actions/checkout@v6
       - name: Acknowledge command
@@ -26,6 +29,9 @@ jobs:
     needs: [try, acknowledge]
     if: always() && needs.try.result != 'skipped'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
     steps:
       - uses: actions/checkout@v6
       - name: Minimize existing comments
