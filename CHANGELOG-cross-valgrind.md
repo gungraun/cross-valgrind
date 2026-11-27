@@ -22,6 +22,10 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Changed
+
+- Update Valgrind to 3.28.0 in all target images.
+
 ## [3.27.1-alpha.0] - 2026-05-21
 
 ### Changed
