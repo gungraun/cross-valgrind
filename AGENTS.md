@@ -8,8 +8,8 @@
 
 - Rust 2021, MSRV `1.85.0` (`rust-version` in `Cargo.toml`).
 - Workspace: the `cross` crate at the root plus the `xtask` workspace member (dev tooling).
-- Alpha stage: the version number tracks the Valgrind version inside the image, not the development stage.
-- Images are published as `ghcr.io/gungraun/<target>` with tags `main` (built from `main`), `edge` (branch builds), `latest`, and release tags derived from git tags (`v3.27.1-alpha.0` → `3.27.1-alpha.0`).
+- Image releases use the bundled Valgrind version and a fork-specific suffix; `-1` denotes the first stable image revision for that Valgrind version.
+- Images are published as `ghcr.io/gungraun/<target>` with tags `main` (built from `main`), `edge` (branch builds), `latest`, and release tags derived from git tags (`v3.28.0-1` → `3.28.0-1`).
 - Consumers run the *upstream* `cross` CLI with per-target image overrides (`Cross.toml` `image = …` or `CROSS_TARGET_<TRIPLE>_IMAGE`). `CROSS_IMAGE` is not recommended here: fork tags don't line up with the binary's built-in default image version.
 - Supported targets are a stripped-down subset of upstream `cross` (11 Linux targets); the authoritative list is `targets.toml` (README "Supported Targets" mirrors it).
 - Image stack differs from upstream: Debian ≥Bookworm base (upstream: Ubuntu ≥20.04), Valgrind in the stack (larger images), newer QEMU and a more recent Linux kernel.
