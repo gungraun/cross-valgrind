@@ -39,7 +39,7 @@ ARG VALGRIND_CONFIGURE_EXTRA_ARGS=""
 ARG VALGRIND_MAKE_EXTRA_ARGS=""
 ARG VALGRIND_CFLAGS="-mips64 -mabi=64"
 
-COPY valgrind.sh valgrind-mips-sa_flags.patch /
+COPY valgrind.sh valgrind-mips-sa_flags.patch valgrind-cross-compile-arm-tests.patch /
 RUN /valgrind.sh
 
 RUN apt-get autopurge -y \

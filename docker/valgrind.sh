@@ -71,6 +71,10 @@ if [[ -f /valgrind-s390x-cachegrind.patch ]]; then
     patch -p1 </valgrind-s390x-cachegrind.patch
 fi
 
+if [[ -f /valgrind-cross-compile-arm-tests.patch ]]; then
+    patch -p0 </valgrind-cross-compile-arm-tests.patch
+fi
+
 dest_dir="/valgrind"
 mkdir -p "$dest_dir"
 
