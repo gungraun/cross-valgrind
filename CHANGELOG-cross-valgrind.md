@@ -16,11 +16,16 @@ All notable changes to this project will be documented in this file.
 This is the CHANGELOG for the `cross-valgrind` fork. Here is the original
 [CHANGELOG](./CHANGELOG.md) of the upstream `cross` project.
 
-The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
-and this project adheres to
-[Semantic Versioning](http://semver.org/spec/v2.0.0.html).
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
+Image releases use the bundled Valgrind version plus a fork-specific suffix.
 
 ## [Unreleased]
+
+## [3.28.0-1] - 2026-11-27
+
+### Changed
+
+- Update Valgrind to 3.28.0 in all target images.
 
 ## [3.27.1-alpha.0] - 2026-05-21
 

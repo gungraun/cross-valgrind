@@ -7,9 +7,8 @@ This repository is an image-focused fork of `cross-rs/cross` for a subset of
 is still the upstream `cross` CLI with image overrides pointing at images built
 from this repository.
 
-This project is in an alpha development stage. The version number is based on
-the valgrind version inside the image and doesn't reflect the development
-progress.
+Image release tags use the bundled Valgrind version. A numeric suffix such as
+`-1` identifies a stable image revision in this fork.
 
 ## Goals
 
@@ -145,8 +144,10 @@ This repository publishes a small set of tags.
 
 - `main`: image built from the `main` branch
 - `edge`: additional branch-build tag as produced by the current tagging logic
-- `latest`: most recent stable image release
-- `3.27.1-alpha.0`: image release tag derived from the git tags `v3.27.1-alpha.0`
+- `latest`: highest image release tag according to this fork's version ordering,
+  which also considers alpha and beta tags
+- `3.28.0-1`: stable image revision built from Git tag `v3.28.0-1`. Pin this tag
+  in production instead of `latest`.
 
 Examples:
 
@@ -154,7 +155,7 @@ Examples:
 ghcr.io/gungraun/aarch64-unknown-linux-gnu:main
 ghcr.io/gungraun/aarch64-unknown-linux-gnu:edge
 ghcr.io/gungraun/aarch64-unknown-linux-gnu:latest
-ghcr.io/gungraun/aarch64-unknown-linux-gnu:3.27.1-alpha.0
+ghcr.io/gungraun/aarch64-unknown-linux-gnu:3.28.0-1
 ```
 
 ## Supported Targets

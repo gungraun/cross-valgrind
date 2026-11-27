@@ -5,6 +5,7 @@
 /cargo-timing*.html
 CHANGELOG.md.draft
 .opencode
+docs/superpowers
 
 # python stuff
 __pycache__/
