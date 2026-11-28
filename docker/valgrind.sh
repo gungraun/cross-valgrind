@@ -67,6 +67,10 @@ if [[ -f /valgrind-mips-sa_flags.patch ]]; then
     patch -p1 </valgrind-mips-sa_flags.patch
 fi
 
+if [[ -f /valgrind-mips-open_tree_attr.patch ]]; then
+    patch -p1 </valgrind-mips-open_tree_attr.patch
+fi
+
 if [[ -f /valgrind-s390x-cachegrind.patch ]]; then
     patch -p1 </valgrind-s390x-cachegrind.patch
 fi
