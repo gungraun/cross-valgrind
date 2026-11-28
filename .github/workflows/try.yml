@@ -10,7 +10,7 @@ jobs:
       contents: read
       pull-requests: write
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Acknowledge command
         id: acknowledge
         run: |
@@ -33,7 +33,7 @@ jobs:
       contents: read
       pull-requests: write
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Minimize existing comments
         run: |
           COMMENTS=$(gh pr view ${{ github.event.issue.number }} --json comments --jq '.comments[] | select((.body | contains("<!--try-conclusion-comment-->") or contains("<!--try-ack-comment-->")) and (.author.login == "github-actions") and (.isMinimized | not)) | .id')

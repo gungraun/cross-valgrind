@@ -31,7 +31,7 @@ jobs:
   shellcheck:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.checkout-ref }}
 
@@ -43,7 +43,7 @@ jobs:
   cargo-deny:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
       with:
         ref: ${{ inputs.checkout-ref }}
     - uses: EmbarkStudios/cargo-deny-action@v2
@@ -51,7 +51,7 @@ jobs:
   fmt:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.checkout-ref }}
 
@@ -71,7 +71,7 @@ jobs:
           - ubuntu-latest
           - windows-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.checkout-ref }}
 
@@ -90,7 +90,7 @@ jobs:
           - ubuntu-latest
           - windows-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.checkout-ref }}
 
@@ -107,7 +107,7 @@ jobs:
     outputs:
       is-latest: ${{ steps.check.outputs.is-latest }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.checkout-ref }}
           fetch-depth: 0
@@ -120,7 +120,7 @@ jobs:
       matrix: ${{ steps.generate-matrix.outputs.matrix }}
       tests: ${{ steps.generate-matrix.outputs.tests }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.checkout-ref }}
       - uses: ./.github/actions/setup-rust
@@ -148,7 +148,7 @@ jobs:
       images: ${{ steps.build-docker-image.outputs.images && fromJSON(steps.build-docker-image.outputs.images)  }}
       coverage-artifact: ${{ steps.cov.outputs.artifact-name }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.checkout-ref }}
 
