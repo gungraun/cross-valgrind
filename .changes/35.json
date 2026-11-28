@@ -1,0 +1,10 @@
+[
+    {
+        "description": "Fix the mips image build failure caused by Valgrind 3.28.0 missing the mips `open_tree_attr` syscall definition",
+        "type": "fixed"
+    },
+    {
+        "description": "Add `docs/patches.md` documenting every patch carried on top of the upstream Valgrind, zlib and QEMU sources",
+        "type": "added"
+    }
+]
